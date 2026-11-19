@@ -1,0 +1,78 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap');
+
+:root {
+  /* Premium Electronics Color Palette (White & Blue) */
+  --color-primary: #0052FF; /* Vibrant Tech Blue */
+  --color-primary-light: #4D88FF;
+  --color-secondary: #E5EDFF; /* Light blue background for badges */
+  --color-accent: #00E5FF; /* Cyan accent */
+  --color-background: #FFFFFF; /* Crisp white */
+  --color-surface: #F8FAFC; /* Very light cool grey/blue for cards */
+  --color-text: #0F172A; /* Slate dark blue */
+  --color-text-light: #64748B;
+  --color-border: #E2E8F0;
+  
+  --font-serif: 'Montserrat', sans-serif; /* Modern, bold headings for tech */
+  --font-sans: 'Inter', sans-serif; /* Clean, readable body */
+  
+  --shadow-sm: 0 4px 6px -1px rgba(0, 82, 255, 0.05), 0 2px 4px -1px rgba(0, 82, 255, 0.03);
+  --shadow-md: 0 10px 15px -3px rgba(0, 82, 255, 0.08), 0 4px 6px -2px rgba(0, 82, 255, 0.04);
+  --shadow-lg: 0 20px 25px -5px rgba(0, 82, 255, 0.1), 0 10px 10px -5px rgba(0, 82, 255, 0.04);
+  
+  --radius-sm: 8px;
+  --radius-md: 12px; /* Slightly sharper for tech */
+  --radius-lg: 20px;
+  
+  --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
+  color: var(--color-text);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+ul {
+  list-style: none;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: var(--font-sans);
+}
