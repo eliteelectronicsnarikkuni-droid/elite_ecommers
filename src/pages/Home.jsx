@@ -107,7 +107,7 @@ const Home = () => {
 
   const isSearching = Boolean(query && query.trim());
 
-  // Automatically reset sort to 'featured' and price to 'all' when search query is cleared
+  // Automatically reset sort to 'featured', price to 'all', and category to 'All' when search query is cleared
   useEffect(() => {
     if (!isSearching) {
       if (selectedSort !== 'featured') {
@@ -116,8 +116,11 @@ const Home = () => {
       if (selectedPriceRange !== 'all') {
         setSelectedPriceRange('all');
       }
+      if (selectedCategory !== 'All') {
+        setSelectedCategory('All');
+      }
     }
-  }, [isSearching, selectedSort, selectedPriceRange]);
+  }, [isSearching, selectedSort, selectedPriceRange, selectedCategory]);
 
   // Combined search, category filter, price filter & sorting
   const filteredProducts = useMemo(() => {
@@ -132,8 +135,8 @@ const Home = () => {
           (product.category && product.category.toLowerCase().includes(queryClean))
         );
 
-        // 2. Category Match
-        const matchesCategory = selectedCategory === 'All' || 
+        // 2. Category Match (only applied when searching)
+        const matchesCategory = !isSearching || selectedCategory === 'All' || 
           (product.category && product.category.toLowerCase() === selectedCategory.toLowerCase());
 
         // 3. Price Range Match (only applied when searching)
@@ -172,7 +175,7 @@ const Home = () => {
   }, [products, query, selectedCategory, selectedPriceRange, selectedSort, isSearching]);
 
   const activeFiltersCount = 
-    (selectedCategory !== 'All' ? 1 : 0) + 
+    (isSearching && selectedCategory !== 'All' ? 1 : 0) + 
     (isSearching && selectedPriceRange !== 'all' ? 1 : 0) + 
     (isSearching && selectedSort !== 'featured' ? 1 : 0) + 
     (isSearching ? 1 : 0);
@@ -186,46 +189,18 @@ const Home = () => {
     }
   };
 
-  const handleCategorySelect = (cat) => {
-    setSelectedCategory(cat);
-  };
-
   return (
     <div className="home-container">
       <main className="products-section">
-        <div className="section-header">
-          <h2>{query ? `Search Results for "${query}"` : 'All Products'}</h2>
-          <div className="header-underline"></div>
-        </div>
-
-        {/* CATEGORY FILTER PILLS BAR */}
-        {!loading && availableCategories.length > 1 && (
-          <div className="category-filter-strip">
-            {availableCategories.map((cat) => {
-              const hasProducts = cat === 'All'
-                ? products.length > 0
-                : products.some(p => p.category?.toLowerCase() === cat.toLowerCase());
-
-              // Only show category pills that have at least 1 product (or 'All')
-              if (cat !== 'All' && !hasProducts) return null;
-
-              const isActive = selectedCategory.toLowerCase() === cat.toLowerCase();
-
-              return (
-                <button
-                  key={cat}
-                  type="button"
-                  className={`category-filter-pill ${isActive ? 'active' : ''}`}
-                  onClick={() => handleCategorySelect(cat)}
-                >
-                  <span>{cat}</span>
-                </button>
-              );
-            })}
+        {/* Search Results Header - only displayed when search is active */}
+        {isSearching && (
+          <div className="section-header">
+            <h2>Search Results for "{query}"</h2>
+            <div className="header-underline"></div>
           </div>
         )}
 
-        {/* CONTROLS TOOLBAR: Sort & Price Filter - ONLY SHOWN WHEN SEARCHING */}
+        {/* CONTROLS TOOLBAR: Category, Price & Sort Filters - ONLY SHOWN WHEN SEARCHING */}
         {!loading && isSearching && (
           <div className="filter-controls-toolbar">
             <div className="filter-toolbar-left">
@@ -242,6 +217,23 @@ const Home = () => {
             </div>
 
             <div className="filter-toolbar-right">
+              {/* Category Filter for Search Results */}
+              <div className="filter-select-container">
+                <SlidersHorizontal size={14} className="filter-select-icon" />
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="filter-dropdown-select"
+                  aria-label="Filter search results by category"
+                >
+                  {availableCategories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat === 'All' ? 'All Categories' : cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {/* Quick Price Range Filter */}
               <div className="filter-select-container">
                 <IndianRupee size={14} className="filter-select-icon" />
