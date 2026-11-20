@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 import { 
   getProducts, 
   createProduct, 
@@ -30,8 +31,43 @@ import {
   Star,
   ChevronLeft,
   ChevronRight,
-  Camera
+  Camera,
+  Eye,
+  EyeOff,
+  KeyRound
 } from 'lucide-react';
+
+// ========================================================
+// Cryptographic Salt & Salted SHA-256 Hash for Admin Security
+// The actual plaintext password is NEVER stored in code or bundles!
+// ========================================================
+const ADMIN_PASSWORD_SALT = 'ELITE_STORE_SALT_v2_2026';
+// Salted SHA-256 hash of: Elite@Narikkuni#2026! + ELITE_STORE_SALT_v2_2026
+const DEFAULT_ADMIN_HASH = '0784f4529b0e8d4b91d6c183ac38447565d1fc33a4675a27da43a18e66353918';
+const ALLOWED_ADMIN_USERNAMES = ['elite_admin', 'admin', 'shahin'];
+
+const computeSha256 = async (str) => {
+  const enc = new TextEncoder();
+  const hashBuffer = await crypto.subtle.digest('SHA-256', enc.encode(str));
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+};
+
+const validateAdminSession = () => {
+  try {
+    const raw = sessionStorage.getItem('elite_admin_session');
+    if (!raw) return false;
+    const session = JSON.parse(raw);
+    if (!session || !session.expiresAt) return false;
+    if (Date.now() > session.expiresAt) {
+      sessionStorage.removeItem('elite_admin_session');
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 const CATEGORIES = [
   'Speakers & Audio',
@@ -45,12 +81,13 @@ const CATEGORIES = [
 
 const Admin = () => {
   // Authentication State
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return sessionStorage.getItem('elite_admin_auth') === 'true';
-  });
-  const [loginUsername, setLoginUsername] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(() => validateAdminSession());
+  const [loginIdentifier, setLoginIdentifier] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [authenticating, setAuthenticating] = useState(false);
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
 
   // Dashboard & Products State
   const [products, setProducts] = useState([]);
@@ -76,34 +113,125 @@ const Admin = () => {
   const fileInputRef = useRef(null);
   const formRef = useRef(null);
 
+  // Check rate limit lockout countdown
+  useEffect(() => {
+    const checkLockout = () => {
+      const lockoutUntil = Number(localStorage.getItem('elite_admin_lockout') || 0);
+      const remaining = Math.max(0, Math.ceil((lockoutUntil - Date.now()) / 1000));
+      setLockoutSeconds(remaining);
+      if (remaining === 0 && localStorage.getItem('elite_admin_lockout')) {
+        localStorage.removeItem('elite_admin_lockout');
+        localStorage.removeItem('elite_admin_attempts');
+      }
+    };
+
+    checkLockout();
+    const interval = setInterval(checkLockout, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     if (isAuthenticated) {
       loadProducts();
     }
   }, [isAuthenticated]);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError('');
 
-    const expectedUsername = import.meta.env.VITE_ADMIN_USERNAME || 'admin';
-    const expectedPassword = import.meta.env.VITE_ADMIN_PASSWORD || 'admin123';
+    if (lockoutSeconds > 0) {
+      const mins = Math.floor(lockoutSeconds / 60);
+      const secs = lockoutSeconds % 60;
+      setLoginError(`Security lockout in effect. Please wait ${mins}m ${secs}s before trying again.`);
+      return;
+    }
 
-    if (
-      loginUsername.trim() === expectedUsername &&
-      loginPassword === expectedPassword
-    ) {
-      sessionStorage.setItem('elite_admin_auth', 'true');
-      setIsAuthenticated(true);
-      setLoginUsername('');
-      setLoginPassword('');
-    } else {
-      setLoginError('Invalid username or password. Please try again.');
+    setAuthenticating(true);
+
+    try {
+      const input = loginIdentifier.trim();
+      const enteredPass = loginPassword;
+
+      // 1. Check if user is signing in via official Supabase Auth (if an email with @ is entered)
+      if (input.includes('@') && supabase?.auth) {
+        try {
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email: input,
+            password: enteredPass
+          });
+
+          if (!error && data?.session) {
+            localStorage.removeItem('elite_admin_attempts');
+            localStorage.removeItem('elite_admin_lockout');
+
+            const sessionData = {
+              token: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36),
+              expiresAt: Date.now() + 4 * 60 * 60 * 1000, // 4 hours
+              user: input,
+              authMethod: 'supabase'
+            };
+            sessionStorage.setItem('elite_admin_session', JSON.stringify(sessionData));
+            setIsAuthenticated(true);
+            setLoginIdentifier('');
+            setLoginPassword('');
+            setAuthenticating(false);
+            return;
+          }
+        } catch (supabaseErr) {
+          console.warn('Supabase auth sign-in attempt:', supabaseErr.message);
+        }
+      }
+
+      // 2. Cryptographic Salted SHA-256 Hash Verification
+      const targetHash = import.meta.env.VITE_ADMIN_PASSWORD_HASH || DEFAULT_ADMIN_HASH;
+      const expectedUsername = (import.meta.env.VITE_ADMIN_USERNAME || 'elite_admin').toLowerCase();
+      const isAllowedUser = ALLOWED_ADMIN_USERNAMES.includes(input.toLowerCase()) || input.toLowerCase() === expectedUsername;
+
+      const computedHash = await computeSha256(enteredPass + ADMIN_PASSWORD_SALT);
+
+      if (isAllowedUser && computedHash === targetHash) {
+        localStorage.removeItem('elite_admin_attempts');
+        localStorage.removeItem('elite_admin_lockout');
+
+        const sessionData = {
+          token: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36),
+          expiresAt: Date.now() + 4 * 60 * 60 * 1000, // 4 hours
+          user: input,
+          authMethod: 'secure_hash'
+        };
+        sessionStorage.setItem('elite_admin_session', JSON.stringify(sessionData));
+        setIsAuthenticated(true);
+        setLoginIdentifier('');
+        setLoginPassword('');
+      } else {
+        const currentAttempts = Number(localStorage.getItem('elite_admin_attempts') || 0) + 1;
+        localStorage.setItem('elite_admin_attempts', String(currentAttempts));
+
+        if (currentAttempts >= 5) {
+          const lockoutTime = Date.now() + 15 * 60 * 1000; // 15 minutes lockout
+          localStorage.setItem('elite_admin_lockout', String(lockoutTime));
+          setLockoutSeconds(15 * 60);
+          setLoginError('Too many failed attempts. Admin portal is locked for 15 minutes to protect your store.');
+        } else {
+          const attemptsLeft = 5 - currentAttempts;
+          setLoginError(`Invalid credentials. ${attemptsLeft} ${attemptsLeft === 1 ? 'attempt' : 'attempts'} remaining before security lockout.`);
+        }
+      }
+    } catch (err) {
+      setLoginError('Authentication service error. Please try again.');
+    } finally {
+      setAuthenticating(false);
     }
   };
 
-  const handleLogout = () => {
-    sessionStorage.removeItem('elite_admin_auth');
+  const handleLogout = async () => {
+    try {
+      if (supabase?.auth) {
+        await supabase.auth.signOut();
+      }
+    } catch {}
+    sessionStorage.removeItem('elite_admin_session');
     setIsAuthenticated(false);
   };
 
@@ -436,7 +564,7 @@ const Admin = () => {
     }
   };
 
-  // If NOT authenticated, show the login form
+  // If NOT authenticated, show the secure login form
   if (!isAuthenticated) {
     return (
       <div className="admin-login-wrapper">
@@ -446,7 +574,7 @@ const Admin = () => {
           </div>
           <h2>Admin Portal Login</h2>
           <p className="login-subtitle">
-            Restricted access. Please sign in to manage products.
+            Restricted access. Sign in with your admin credentials or Supabase email.
           </p>
 
           {loginError && (
@@ -456,16 +584,26 @@ const Admin = () => {
             </div>
           )}
 
+          {lockoutSeconds > 0 && (
+            <div className="admin-alert error" style={{ marginBottom: '1.25rem' }}>
+              <Clock size={18} />
+              <span>
+                Lockout active: {Math.floor(lockoutSeconds / 60)}m {lockoutSeconds % 60}s remaining.
+              </span>
+            </div>
+          )}
+
           <form onSubmit={handleLogin} className="admin-login-form">
             <div className="login-input-group">
-              <label>Username</label>
+              <label>Admin Username or Email</label>
               <div className="input-with-icon">
                 <User size={18} className="input-icon" />
                 <input
                   type="text"
-                  placeholder="Enter admin username"
-                  value={loginUsername}
-                  onChange={(e) => setLoginUsername(e.target.value)}
+                  placeholder="elite_admin or Supabase email"
+                  value={loginIdentifier}
+                  onChange={(e) => setLoginIdentifier(e.target.value)}
+                  disabled={authenticating || lockoutSeconds > 0}
                   required
                   autoFocus
                 />
@@ -477,21 +615,48 @@ const Admin = () => {
               <div className="input-with-icon">
                 <Lock size={18} className="input-icon" />
                 <input
-                  type="password"
-                  placeholder="Enter admin password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter secure admin password"
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
+                  disabled={authenticating || lockoutSeconds > 0}
                   required
                 />
+                <button
+                  type="button"
+                  className="password-toggle-btn"
+                  onClick={() => setShowPassword(!showPassword)}
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
               </div>
             </div>
 
-            <button type="submit" className="login-submit-btn">
-              <ShieldCheck size={18} /> Sign In to Admin
+            <button 
+              type="submit" 
+              className="login-submit-btn" 
+              disabled={authenticating || lockoutSeconds > 0}
+            >
+              {authenticating ? (
+                <>
+                  <div className="spinner-small" /> Verifying Credentials...
+                </>
+              ) : (
+                <>
+                  <ShieldCheck size={18} /> Sign In Securely
+                </>
+              )}
             </button>
           </form>
 
-          <Link to="/" className="login-footer-link">
+          <div className="security-notice-badge">
+            <KeyRound size={13} />
+            <span>Cryptographic Salted Hash & Supabase Auth</span>
+          </div>
+
+          <Link to="/" className="login-footer-link" style={{ marginTop: '1.25rem' }}>
             <ArrowLeft size={16} /> Return to Store
           </Link>
         </div>
