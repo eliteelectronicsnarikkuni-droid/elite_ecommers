@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import { 
   getProducts, 
   createProduct, 
+  updateProduct, 
   deleteProduct, 
   uploadProductImage 
 } from '../services/productService';
+import { compressImage, formatFileSize } from '../utils/imageCompressor';
 import { 
   Plus, 
   Trash2, 
@@ -19,7 +21,16 @@ import {
   Lock,
   User,
   LogOut,
-  ShieldCheck
+  ShieldCheck,
+  Clock,
+  Tag,
+  Percent,
+  Pencil,
+  Zap,
+  Star,
+  ChevronLeft,
+  ChevronRight,
+  Camera
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -45,21 +56,25 @@ const Admin = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [feedback, setFeedback] = useState(null); // { type: 'success' | 'error', message: '' }
+  const [feedback, setFeedback] = useState(null); // { type: 'success' | 'error' | 'info', message: '' }
+  const [editingProductId, setEditingProductId] = useState(null);
 
   // Form State
   const [name, setName] = useState('');
-  const [price, setPrice] = useState('');
+  const [actualPrice, setActualPrice] = useState(''); // Original Price / MRP
+  const [offerPrice, setOfferPrice] = useState('');   // Selling / Discounted Price
   const [category, setCategory] = useState('Speakers & Audio');
   const [customCategory, setCustomCategory] = useState('');
   const [description, setDescription] = useState('');
   const [features, setFeatures] = useState(['', '']);
   const [imageMode, setImageMode] = useState('upload'); // 'upload' | 'url'
-  const [imageUrl, setImageUrl] = useState('');
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState('');
+  const [imageItems, setImageItems] = useState([]); // Array of { id, url, file, previewUrl, compressionInfo }
+  const [urlInput, setUrlInput] = useState('');
+  const [compressing, setCompressing] = useState(false);
+  const [compressProgress, setCompressProgress] = useState('');
 
   const fileInputRef = useRef(null);
+  const formRef = useRef(null);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -95,7 +110,7 @@ const Admin = () => {
   const loadProducts = async () => {
     setLoading(true);
     try {
-      const res = await getProducts();
+      const res = await getProducts({ forceRefresh: true });
       setProducts(res.products || []);
     } catch (err) {
       console.error('Error fetching products:', err);
@@ -104,20 +119,111 @@ const Admin = () => {
     }
   };
 
-  const handleImageFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-    }
-  };
+  const handleImageFilesChange = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-  const removeSelectedFile = () => {
-    setImageFile(null);
-    setImagePreview('');
+    const availableSlots = 5 - imageItems.length;
+    if (availableSlots <= 0) {
+      setFeedback({ 
+        type: 'error', 
+        message: 'Maximum 5 images allowed per product. Please delete an image below to add a new one.' 
+      });
+      return;
+    }
+
+    const filesToProcess = files.slice(0, availableSlots);
+    if (files.length > availableSlots) {
+      setFeedback({ 
+        type: 'info', 
+        message: `Only ${availableSlots} more image(s) could be added (max 5). Excess files were skipped.` 
+      });
+    }
+
+    setCompressing(true);
+    const newItems = [];
+
+    for (let i = 0; i < filesToProcess.length; i++) {
+      const file = filesToProcess[i];
+      setCompressProgress(`Compressing photo ${i + 1} of ${filesToProcess.length}...`);
+      try {
+        // Smart HD WebP compression
+        const result = await compressImage(file, { maxWidth: 1200, maxHeight: 1200, quality: 0.83 });
+        newItems.push({
+          id: `img_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          file: result.compressedFile,
+          previewUrl: result.previewUrl,
+          compressionInfo: {
+            originalSize: formatFileSize(result.originalSize),
+            compressedSize: formatFileSize(result.compressedSize),
+            savedPercent: result.savedPercent
+          }
+        });
+      } catch (err) {
+        console.warn('Image compression fallback:', err);
+        newItems.push({
+          id: `img_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          file: file,
+          previewUrl: URL.createObjectURL(file),
+          compressionInfo: null
+        });
+      }
+    }
+
+    setImageItems((prev) => [...prev, ...newItems].slice(0, 5));
+    setCompressing(false);
+    setCompressProgress('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  const handleAddUrlImage = (e) => {
+    if (e) e.preventDefault();
+    const trimmed = urlInput.trim();
+    if (!trimmed) return;
+
+    if (imageItems.length >= 5) {
+      setFeedback({ type: 'error', message: 'Maximum 5 images allowed per product.' });
+      return;
+    }
+
+    setImageItems((prev) => [
+      ...prev,
+      {
+        id: `img_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        url: trimmed,
+        previewUrl: trimmed,
+        file: null,
+        compressionInfo: null
+      }
+    ]);
+    setUrlInput('');
+  };
+
+  const removeImageItem = (index) => {
+    setImageItems((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const makeCoverImage = (index) => {
+    if (index === 0) return;
+    setImageItems((prev) => {
+      const copy = [...prev];
+      const [chosen] = copy.splice(index, 1);
+      return [chosen, ...copy];
+    });
+  };
+
+  const moveImage = (index, direction) => {
+    setImageItems((prev) => {
+      const newIndex = index + direction;
+      if (newIndex < 0 || newIndex >= prev.length) return prev;
+      const copy = [...prev];
+      const temp = copy[index];
+      copy[index] = copy[newIndex];
+      copy[newIndex] = temp;
+      return copy;
+    });
   };
 
   const handleFeatureChange = (index, value) => {
@@ -138,16 +244,88 @@ const Admin = () => {
     }
   };
 
+  const numActual = Number(actualPrice);
+  const numOffer = Number(offerPrice);
+  const liveDiscountPercent = (numActual > 0 && numOffer > 0 && numActual > numOffer)
+    ? Math.round(((numActual - numOffer) / numActual) * 100)
+    : 0;
+  const liveSavings = (numActual > 0 && numOffer > 0 && numActual > numOffer)
+    ? (numActual - numOffer).toFixed(2)
+    : 0;
+
+  const handleEdit = (product) => {
+    setEditingProductId(product.id);
+    setName(product.name || '');
+    setOfferPrice(product.price != null ? String(product.price) : '');
+    setActualPrice(product.originalPrice != null ? String(product.originalPrice) : '');
+
+    if (CATEGORIES.includes(product.category)) {
+      setCategory(product.category);
+      setCustomCategory('');
+    } else {
+      setCategory('Other');
+      setCustomCategory(product.category || '');
+    }
+
+    setDescription(product.description || '');
+
+    const prodFeatures = Array.isArray(product.features) && product.features.length > 0
+      ? product.features
+      : ['', ''];
+    setFeatures(prodFeatures);
+
+    const prodImages = Array.isArray(product.images) && product.images.length > 0
+      ? product.images
+      : (product.imageUrl ? [product.imageUrl] : []);
+
+    setImageItems(
+      prodImages.slice(0, 5).map((imgUrl, i) => ({
+        id: `edit_${i}_${Date.now()}`,
+        url: imgUrl,
+        previewUrl: imgUrl,
+        file: null,
+        compressionInfo: null
+      }))
+    );
+    setUrlInput('');
+    setCompressing(false);
+    setCompressProgress('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+
+    setFeedback({
+      type: 'info',
+      message: `Now editing "${product.name}". Update the details below and click "Update Product".`
+    });
+
+    if (formRef.current) {
+      formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingProductId(null);
+    resetForm();
+    setFeedback(null);
+  };
+
   const resetForm = () => {
+    setEditingProductId(null);
     setName('');
-    setPrice('');
+    setActualPrice('');
+    setOfferPrice('');
     setCategory('Speakers & Audio');
     setCustomCategory('');
     setDescription('');
     setFeatures(['', '']);
-    setImageMode('upload');
-    setImageUrl('');
-    removeSelectedFile();
+    setImageItems([]);
+    setUrlInput('');
+    setCompressing(false);
+    setCompressProgress('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -159,52 +337,78 @@ const Admin = () => {
       return;
     }
 
-    if (!price || isNaN(price) || Number(price) <= 0) {
-      setFeedback({ type: 'error', message: 'Please enter a valid price in ₹.' });
+    if (!offerPrice || isNaN(offerPrice) || Number(offerPrice) <= 0) {
+      setFeedback({ type: 'error', message: 'Please enter a valid Offer Price in ₹.' });
+      return;
+    }
+
+    if (actualPrice && (isNaN(actualPrice) || Number(actualPrice) < 0)) {
+      setFeedback({ type: 'error', message: 'Actual Price must be a valid positive number.' });
       return;
     }
 
     setSubmitting(true);
 
     try {
-      let finalImageUrl = imageUrl.trim();
+      const uploadedUrls = [];
 
-      // If uploading an image file to Supabase Storage
-      if (imageMode === 'upload' && imageFile) {
-        setFeedback({ type: 'info', message: 'Uploading product image to Supabase Storage...' });
-        finalImageUrl = await uploadProductImage(imageFile);
+      // Upload each file in imageItems to Supabase Storage
+      for (let i = 0; i < imageItems.length; i++) {
+        const item = imageItems[i];
+        if (item.file) {
+          setFeedback({
+            type: 'info',
+            message: `Uploading image ${i + 1} of ${imageItems.length} to Supabase Storage...`
+          });
+          const uploadedUrl = await uploadProductImage(item.file);
+          uploadedUrls.push(uploadedUrl);
+        } else if (item.url) {
+          uploadedUrls.push(item.url);
+        } else if (item.previewUrl && !item.previewUrl.startsWith('blob:')) {
+          uploadedUrls.push(item.previewUrl);
+        }
       }
 
-      if (!finalImageUrl) {
-        finalImageUrl = 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=800&q=80';
-      }
+      const finalImages = uploadedUrls.filter(Boolean).slice(0, 5);
+      const defaultPlaceholder = 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=800&q=80';
+      const primaryImageUrl = finalImages[0] || defaultPlaceholder;
+      const allImages = finalImages.length > 0 ? finalImages : [primaryImageUrl];
 
       const activeCategory = category === 'Other' ? customCategory.trim() || 'General' : category;
       const cleanFeatures = features.map(f => f.trim()).filter(Boolean);
 
-      const newProductData = {
+      const productPayload = {
         name: name.trim(),
-        price: Number(price),
+        price: Number(offerPrice),
+        originalPrice: actualPrice && !isNaN(actualPrice) ? Number(actualPrice) : null,
         category: activeCategory,
         description: description.trim(),
-        imageUrl: finalImageUrl,
+        imageUrl: primaryImageUrl,
+        images: allImages,
         features: cleanFeatures
       };
 
-      await createProduct(newProductData);
-
-      setFeedback({
-        type: 'success',
-        message: `"${name}" added successfully to Supabase database!`
-      });
+      if (editingProductId) {
+        await updateProduct(editingProductId, productPayload);
+        setFeedback({
+          type: 'success',
+          message: `"${name}" updated successfully in Supabase!`
+        });
+      } else {
+        await createProduct(productPayload);
+        setFeedback({
+          type: 'success',
+          message: `"${name}" added successfully to Supabase database!`
+        });
+      }
 
       resetForm();
       await loadProducts();
     } catch (err) {
-      console.error('Error adding product:', err);
+      console.error('Error saving product:', err);
       setFeedback({
         type: 'error',
-        message: err.message || 'Failed to add product. Please check your Supabase Storage permissions.'
+        message: err.message || 'Failed to save product. Please check your Supabase permissions.'
       });
     } finally {
       setSubmitting(false);
@@ -324,11 +528,33 @@ const Admin = () => {
       )}
 
       <div className="admin-grid">
-        {/* ADD PRODUCT FORM */}
-        <div className="admin-card">
-          <div className="card-title">
-            <Plus size={22} />
-            <h2>Add New Product</h2>
+        {/* ADD / EDIT PRODUCT FORM */}
+        <div className={`admin-card ${editingProductId ? 'card-editing-mode' : ''}`} ref={formRef}>
+          <div className="card-title-header">
+            <div className="card-title">
+              {editingProductId ? (
+                <>
+                  <Pencil size={22} className="edit-icon-highlight" />
+                  <h2>Edit Product</h2>
+                </>
+              ) : (
+                <>
+                  <Plus size={22} />
+                  <h2>Add New Product</h2>
+                </>
+              )}
+            </div>
+
+            {editingProductId && (
+              <button
+                type="button"
+                className="cancel-edit-btn"
+                onClick={cancelEdit}
+                title="Cancel editing and create new product"
+              >
+                <X size={15} /> Cancel Edit
+              </button>
+            )}
           </div>
 
           <form onSubmit={handleSubmit} className="admin-form">
@@ -337,38 +563,72 @@ const Admin = () => {
               <input
                 type="text"
                 placeholder="e.g. Sony WH-1000XM5 Wireless Headphones"
-                value={name}
+                value={name ?? ''}
                 onChange={(e) => setName(e.target.value)}
                 required
               />
             </div>
 
-            <div className="form-row">
+            <div className="form-row prices-row">
               <div className="form-group">
-                <label>Price (₹) *</label>
+                <label>Actual Price / MRP (₹)</label>
                 <input
                   type="number"
-                  placeholder="e.g. 29990"
+                  placeholder="e.g. 1499"
                   step="0.01"
                   min="0"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  required
+                  value={actualPrice ?? ''}
+                  onChange={(e) => setActualPrice(e.target.value)}
                 />
+                <span className="input-field-hint">Original MRP before discount</span>
               </div>
 
               <div className="form-group">
-                <label>Category</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                >
-                  {CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                  <option value="Other">Other / Custom</option>
-                </select>
+                <label>Offer Price (₹) *</label>
+                <input
+                  type="number"
+                  placeholder="e.g. 999"
+                  step="0.01"
+                  min="0"
+                  value={offerPrice ?? ''}
+                  onChange={(e) => setOfferPrice(e.target.value)}
+                  required
+                />
+                <span className="input-field-hint">Final customer buying price</span>
               </div>
+            </div>
+
+            {/* Live Discount Calculator Preview */}
+            {numActual > 0 && numOffer > 0 && (
+              <div className={`admin-discount-preview ${numActual > numOffer ? 'positive' : 'notice'}`}>
+                {numActual > numOffer ? (
+                  <>
+                    <span className="discount-pill">
+                      <Percent size={14} /> {liveDiscountPercent}% OFF
+                    </span>
+                    <span className="savings-info">
+                      Buyer saves <strong>₹{Number(liveSavings).toLocaleString('en-IN')}</strong> on this deal!
+                    </span>
+                  </>
+                ) : (
+                  <span className="savings-info warning">
+                    Note: Offer price is currently equal to or greater than the actual MRP.
+                  </span>
+                )}
+              </div>
+            )}
+
+            <div className="form-group">
+              <label>Category</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              >
+                {CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+                <option value="Other">Other / Custom</option>
+              </select>
             </div>
 
             {category === 'Other' && (
@@ -377,7 +637,7 @@ const Admin = () => {
                 <input
                   type="text"
                   placeholder="e.g. Drones, Smart Home"
-                  value={customCategory}
+                  value={customCategory ?? ''}
                   onChange={(e) => setCustomCategory(e.target.value)}
                 />
               </div>
@@ -388,7 +648,7 @@ const Admin = () => {
               <textarea
                 rows={3}
                 placeholder="Describe key benefits, specifications, and details..."
-                value={description}
+                value={description ?? ''}
                 onChange={(e) => setDescription(e.target.value)}
               />
             </div>
@@ -411,7 +671,7 @@ const Admin = () => {
                     <input
                       type="text"
                       placeholder={`Feature #${index + 1} (e.g. 30hr Battery Life)`}
-                      value={feat}
+                      value={feat ?? ''}
                       onChange={(e) => handleFeatureChange(index, e.target.value)}
                     />
                     <button
@@ -427,9 +687,19 @@ const Admin = () => {
               </div>
             </div>
 
-            {/* PRODUCT IMAGE SECTION */}
-            <div className="form-group">
-              <label>Product Image</label>
+            {/* PRODUCT IMAGES SECTION - UP TO 5 IMAGES */}
+            <div className="form-group admin-images-section">
+              <div className="images-header-row">
+                <div>
+                  <label>Product Images (Up to 5) *</label>
+                  <span className="input-field-hint">
+                    Add up to 5 photos. Photo #1 is the primary cover image seen on the shop catalog.
+                  </span>
+                </div>
+                <span className={`images-counter-pill ${imageItems.length === 5 ? 'full' : ''}`}>
+                  <Camera size={14} /> {imageItems.length} / 5 Photos
+                </span>
+              </div>
               
               <div className="image-mode-tabs">
                 <button
@@ -437,14 +707,14 @@ const Admin = () => {
                   className={`tab-btn ${imageMode === 'upload' ? 'active' : ''}`}
                   onClick={() => setImageMode('upload')}
                 >
-                  <Upload size={16} /> Upload File
+                  <Upload size={16} /> Upload Photos
                 </button>
                 <button
                   type="button"
                   className={`tab-btn ${imageMode === 'url' ? 'active' : ''}`}
                   onClick={() => setImageMode('url')}
                 >
-                  <ImageIcon size={16} /> Image URL
+                  <ImageIcon size={16} /> Add by Image URL
                 </button>
               </div>
 
@@ -453,57 +723,169 @@ const Admin = () => {
                   <input
                     type="file"
                     accept="image/*"
+                    multiple
                     ref={fileInputRef}
-                    onChange={handleImageFileChange}
+                    onChange={handleImageFilesChange}
                     style={{ display: 'none' }}
                     id="product-image-upload"
+                    disabled={imageItems.length >= 5 || compressing}
                   />
-                  {!imagePreview ? (
-                    <label htmlFor="product-image-upload" className="file-dropzone">
+
+                  {compressing ? (
+                    <div className="compressing-box">
+                      <div className="spinner"></div>
+                      <span className="compressing-title">Compressing Photos...</span>
+                      <span className="compressing-subtitle">{compressProgress || 'Optimizing without losing quality (HD WebP)'}</span>
+                    </div>
+                  ) : imageItems.length < 5 ? (
+                    <label htmlFor="product-image-upload" className="file-dropzone multi-dropzone">
                       <Upload size={32} className="upload-icon" />
-                      <span className="dropzone-title">Click to upload product image</span>
-                      <span className="dropzone-subtitle">PNG, JPG, WEBP up to 5MB</span>
+                      <span className="dropzone-title">Click to upload photos ({5 - imageItems.length} slot{5 - imageItems.length > 1 ? 's' : ''} left)</span>
+                      <span className="dropzone-subtitle">Choose up to 5 images • Auto-compressed to HD WebP to save storage space</span>
                     </label>
                   ) : (
-                    <div className="image-preview-container">
-                      <img src={imagePreview} alt="Preview" className="preview-img" />
-                      <button
-                        type="button"
-                        className="remove-preview-btn"
-                        onClick={removeSelectedFile}
-                        title="Remove image"
-                      >
-                        <X size={18} />
-                      </button>
+                    <div className="max-images-notice">
+                      <CheckCircle2 size={18} className="text-green" />
+                      <span>Maximum 5 photos added! You can reorder, change cover, or delete items below.</span>
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="url-input-wrapper">
-                  <input
-                    type="url"
-                    placeholder="https://images.unsplash.com/photo-..."
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                  />
-                  {imageUrl && (
-                    <div className="image-preview-container url-preview">
-                      <img src={imageUrl} alt="Preview" className="preview-img" />
-                    </div>
+                  <div className="url-input-row">
+                    <input
+                      type="url"
+                      placeholder="https://images.unsplash.com/photo-..."
+                      value={urlInput ?? ''}
+                      onChange={(e) => setUrlInput(e.target.value)}
+                      disabled={imageItems.length >= 5}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddUrlImage();
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="add-url-img-btn"
+                      onClick={handleAddUrlImage}
+                      disabled={!urlInput.trim() || imageItems.length >= 5}
+                    >
+                      <Plus size={16} /> Add Photo
+                    </button>
+                  </div>
+                  {imageItems.length >= 5 && (
+                    <span className="input-field-hint warning">Maximum 5 photos reached. Remove one below to add another.</span>
                   )}
+                </div>
+              )}
+
+              {/* GALLERY THUMBNAIL MANAGEMENT GRID (UP TO 5 IMAGES) */}
+              {imageItems.length > 0 && (
+                <div className="admin-gallery-grid-container">
+                  <div className="gallery-grid-header">
+                    <span className="grid-title">Gallery Slots ({imageItems.length}/5)</span>
+                    <span className="grid-help">Photo #1 is the store cover. Use arrows to reorder or click "Set Cover".</span>
+                  </div>
+
+                  <div className="admin-gallery-slots">
+                    {imageItems.map((item, idx) => (
+                      <div key={item.id || idx} className={`admin-gallery-card ${idx === 0 ? 'is-cover' : ''}`}>
+                        <div className="gallery-card-thumb-wrap">
+                          <img src={item.previewUrl} alt={`Photo ${idx + 1}`} className="gallery-card-thumb" />
+                          
+                          {idx === 0 ? (
+                            <span className="cover-badge" title="Primary cover photo for shop display">
+                              <Star size={11} fill="currentColor" /> Cover
+                            </span>
+                          ) : (
+                            <span className="slot-num-badge">#{idx + 1}</span>
+                          )}
+
+                          <button
+                            type="button"
+                            className="gallery-card-remove"
+                            onClick={() => removeImageItem(idx)}
+                            title="Remove photo"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+
+                        <div className="gallery-card-actions">
+                          {idx !== 0 ? (
+                            <button
+                              type="button"
+                              className="set-cover-btn"
+                              onClick={() => makeCoverImage(idx)}
+                              title="Make this the primary cover image"
+                            >
+                              <Star size={12} /> Set Cover
+                            </button>
+                          ) : (
+                            <span className="primary-cover-label">Primary Cover</span>
+                          )}
+
+                          <div className="reorder-btns">
+                            <button
+                              type="button"
+                              className="reorder-btn"
+                              disabled={idx === 0}
+                              onClick={() => moveImage(idx, -1)}
+                              title="Move left"
+                            >
+                              <ChevronLeft size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              className="reorder-btn"
+                              disabled={idx === imageItems.length - 1}
+                              onClick={() => moveImage(idx, 1)}
+                              title="Move right"
+                            >
+                              <ChevronRight size={14} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {item.compressionInfo && (
+                          <div className="gallery-card-compression">
+                            <Zap size={10} /> Saved {item.compressionInfo.savedPercent}%
+                          </div>
+                        )}
+                      </div>
+                    ))}
+
+                    {imageItems.length < 5 && (
+                      <label 
+                        htmlFor="product-image-upload" 
+                        className="admin-add-more-slot" 
+                        title={`Add photo (${imageItems.length + 1} of 5)`}
+                      >
+                        <Plus size={22} />
+                        <span>Add Photo</span>
+                        <span className="add-more-count">({imageItems.length}/5)</span>
+                      </label>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
 
             <button
               type="submit"
-              className="submit-product-btn"
+              className={`submit-product-btn ${editingProductId ? 'update-mode' : ''}`}
               disabled={submitting}
             >
               {submitting ? (
                 <>
                   <div className="spinner-small"></div>
-                  Saving to Supabase...
+                  {editingProductId ? 'Updating in Supabase...' : 'Saving to Supabase...'}
+                </>
+              ) : editingProductId ? (
+                <>
+                  <CheckCircle2 size={18} /> Update Product
                 </>
               ) : (
                 <>
@@ -535,7 +917,8 @@ const Admin = () => {
                   <tr>
                     <th>Item</th>
                     <th>Category</th>
-                    <th>Price</th>
+                    <th>Pricing</th>
+                    <th>Added On</th>
                     <th>Action</th>
                   </tr>
                 </thead>
@@ -545,14 +928,41 @@ const Admin = () => {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2
                     });
+                    const originalFormatted = p.originalPrice
+                      ? Number(p.originalPrice).toLocaleString('en-IN', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })
+                      : null;
+                    const formattedDate = p.createdAt
+                      ? new Date(p.createdAt).toLocaleDateString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric'
+                        })
+                      : null;
+                    const formattedTime = p.createdAt
+                      ? new Date(p.createdAt).toLocaleTimeString('en-IN', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })
+                      : null;
+
                     return (
-                      <tr key={p.id}>
+                      <tr key={p.id} className={editingProductId === p.id ? 'row-editing' : ''}>
                         <td className="product-cell">
-                          <img
-                            src={p.imageUrl || 'https://via.placeholder.com/60'}
-                            alt={p.name}
-                            className="table-thumb"
-                          />
+                          <div className="table-thumb-wrap">
+                            <img
+                              src={p.imageUrl || 'https://via.placeholder.com/60'}
+                              alt={p.name}
+                              className="table-thumb"
+                            />
+                            {Array.isArray(p.images) && p.images.length > 1 && (
+                              <span className="table-photos-count" title={`${p.images.length} photos`}>
+                                <Camera size={10} /> {p.images.length}
+                              </span>
+                            )}
+                          </div>
                           <div>
                             <span className="table-name">{p.name}</span>
                             <span className="table-id">ID: {p.id}</span>
@@ -561,15 +971,45 @@ const Admin = () => {
                         <td>
                           <span className="table-badge">{p.category}</span>
                         </td>
-                        <td className="table-price">₹{priceFormatted}</td>
-                        <td>
-                          <button
-                            className="delete-btn"
-                            onClick={() => handleDelete(p.id, p.name)}
-                            title="Delete product"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                        <td className="table-price-cell">
+                          <div className="table-price-main">₹{priceFormatted}</div>
+                          {originalFormatted && Number(p.originalPrice) > Number(p.price) && (
+                            <div className="table-price-sub">
+                              <span className="table-mrp">MRP ₹{originalFormatted}</span>
+                              <span className="table-discount-badge">{p.discountPercentage}% OFF</span>
+                            </div>
+                          )}
+                        </td>
+                        <td className="table-date-cell">
+                          {formattedDate ? (
+                            <div className="table-added-time" title={p.createdAt}>
+                              <div className="table-date-str">
+                                <Clock size={13} className="time-icon" />
+                                <span>{formattedDate}</span>
+                              </div>
+                              <span className="table-time-str">{formattedTime}</span>
+                            </div>
+                          ) : (
+                            <span className="table-empty-date">—</span>
+                          )}
+                        </td>
+                        <td className="table-actions-cell">
+                          <div className="table-actions-group">
+                            <button
+                              className="edit-btn"
+                              onClick={() => handleEdit(p)}
+                              title={`Edit "${p.name}"`}
+                            >
+                              <Pencil size={14} /> Edit
+                            </button>
+                            <button
+                              className="delete-btn"
+                              onClick={() => handleDelete(p.id, p.name)}
+                              title={`Delete "${p.name}"`}
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );

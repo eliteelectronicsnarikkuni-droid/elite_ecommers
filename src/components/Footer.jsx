@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { MapPin } from 'lucide-react';
 
 const InstagramIcon = ({ size = 18 }) => (
   <svg
@@ -43,7 +44,7 @@ const Footer = () => {
           </p>
           <div className="footer-social-section">
             <a
-              href="https://instagram.com/"
+              href="https://www.instagram.com/elite.electronicss?fqnt=bXN4bzZ2dDExZGZw"
               target="_blank"
               rel="noopener noreferrer"
               className="footer-insta-btn"
@@ -105,10 +106,22 @@ const Footer = () => {
           <h3 className="footer-heading">Contact Us</h3>
           <ul className="footer-contact-info">
             <li>
-              <strong>Address :</strong> Mathara, Calicut, Kerala
+              <strong>Address :</strong>{' '}
+              <a
+                href="https://maps.app.goo.gl/sLi53dJKGJi6Lhw66?g_st=ic"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="footer-map-address-link"
+                title="View Elite Electronics on Google Maps"
+              >
+                <span>Ground Floor, Star Complex, Main Rd, Narikkuni, Kerala 673585</span>
+                <span className="footer-map-pill">
+                  <MapPin size={13} /> View on Google Maps
+                </span>
+              </a>
             </li>
             <li>
-              <strong>Call :</strong> +91 9447210273
+              <strong>Call :</strong> +91 09995919794
             </li>
             <li>
               <strong>Email :</strong> eliteelectronics@gmail.com
@@ -116,12 +129,12 @@ const Footer = () => {
             <li>
               <strong>Instagram :</strong>{' '}
               <a
-                href="https://instagram.com/"
+                href="https://www.instagram.com/elite.electronicss?fqnt=bXN4bzZ2dDExZGZw"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="insta-text-link"
               >
-                @elite_electronics
+                @elite.electronicss
               </a>
             </li>
           </ul>

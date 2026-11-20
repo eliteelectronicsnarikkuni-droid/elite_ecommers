@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
+import ScrollToTop from './components/ScrollToTop'
 import Home from './pages/Home'
 import ProductDetail from './pages/ProductDetail'
 import Admin from './pages/Admin'
@@ -9,6 +10,7 @@ import './App.css'
 function App() {
   return (
     <div className="app-container">
+      <ScrollToTop />
       <Navbar />
       <main className="main-content">
         <Routes>

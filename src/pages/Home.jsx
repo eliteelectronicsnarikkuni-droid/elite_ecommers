@@ -57,35 +57,25 @@ const Home = () => {
 
   return (
     <div className="home-container">
-      {!query && (
-        <header className="hero-section">
-          <div className="hero-content">
-            <div className="hero-badge">⚡ Electronic Tools & Audio Essentials</div>
-            <h1>Quality Electronics, Tools & Audio Gear</h1>
-            <p>
-              Your trusted store for Speakers, LED Lighting, Soldering Irons, Digital Multimeters, Torches, and Electronic Components.
-            </p>
-            <div className="hero-tags">
-              <span className="hero-tag">🔊 Speakers</span>
-              <span className="hero-tag">💡 LED Lights</span>
-              <span className="hero-tag">🔥 Soldering Irons</span>
-              <span className="hero-tag">⚡ Multimeters</span>
-              <span className="hero-tag">🔦 Torches</span>
-            </div>
-          </div>
-        </header>
-      )}
-      
-      <main className="products-section" style={query ? { marginTop: '4rem' } : {}}>
+      <main className="products-section">
         <div className="section-header">
           <h2>{query ? `Search Results for "${query}"` : 'Premium Selection'}</h2>
           <div className="header-underline"></div>
         </div>
 
         {loading ? (
-          <div className="loading-container">
-            <div className="spinner"></div>
-            <p>Loading products...</p>
+          <div className="products-grid">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="skeleton-product-card">
+                <div className="skeleton-thumb shimmer"></div>
+                <div className="skeleton-body">
+                  <div className="skeleton-line shimmer skeleton-cat"></div>
+                  <div className="skeleton-line shimmer skeleton-title"></div>
+                  <div className="skeleton-line shimmer skeleton-price"></div>
+                  <div className="skeleton-btn shimmer"></div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : error ? (
           <div className="no-results" style={{ textAlign: 'center', padding: '4rem' }}>
