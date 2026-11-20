@@ -107,12 +107,17 @@ const Home = () => {
 
   const isSearching = Boolean(query && query.trim());
 
-  // Automatically reset sort to 'featured' when search query is cleared
+  // Automatically reset sort to 'featured' and price to 'all' when search query is cleared
   useEffect(() => {
-    if (!isSearching && selectedSort !== 'featured') {
-      setSelectedSort('featured');
+    if (!isSearching) {
+      if (selectedSort !== 'featured') {
+        setSelectedSort('featured');
+      }
+      if (selectedPriceRange !== 'all') {
+        setSelectedPriceRange('all');
+      }
     }
-  }, [isSearching, selectedSort]);
+  }, [isSearching, selectedSort, selectedPriceRange]);
 
   // Combined search, category filter, price filter & sorting
   const filteredProducts = useMemo(() => {
@@ -131,17 +136,19 @@ const Home = () => {
         const matchesCategory = selectedCategory === 'All' || 
           (product.category && product.category.toLowerCase() === selectedCategory.toLowerCase());
 
-        // 3. Price Range Match
-        const price = Number(product.price || 0);
+        // 3. Price Range Match (only applied when searching)
         let matchesPrice = true;
-        if (selectedPriceRange === 'under-500') {
-          matchesPrice = price < 500;
-        } else if (selectedPriceRange === '500-1000') {
-          matchesPrice = price >= 500 && price <= 1000;
-        } else if (selectedPriceRange === '1000-2500') {
-          matchesPrice = price > 1000 && price <= 2500;
-        } else if (selectedPriceRange === 'above-2500') {
-          matchesPrice = price > 2500;
+        if (isSearching && selectedPriceRange !== 'all') {
+          const price = Number(product.price || 0);
+          if (selectedPriceRange === 'under-500') {
+            matchesPrice = price < 500;
+          } else if (selectedPriceRange === '500-1000') {
+            matchesPrice = price >= 500 && price <= 1000;
+          } else if (selectedPriceRange === '1000-2500') {
+            matchesPrice = price > 1000 && price <= 2500;
+          } else if (selectedPriceRange === 'above-2500') {
+            matchesPrice = price > 2500;
+          }
         }
 
         return matchesQuery && matchesCategory && matchesPrice;
@@ -166,7 +173,7 @@ const Home = () => {
 
   const activeFiltersCount = 
     (selectedCategory !== 'All' ? 1 : 0) + 
-    (selectedPriceRange !== 'all' ? 1 : 0) + 
+    (isSearching && selectedPriceRange !== 'all' ? 1 : 0) + 
     (isSearching && selectedSort !== 'featured' ? 1 : 0) + 
     (isSearching ? 1 : 0);
 
@@ -195,12 +202,12 @@ const Home = () => {
         {!loading && availableCategories.length > 1 && (
           <div className="category-filter-strip">
             {availableCategories.map((cat) => {
-              const count = cat === 'All'
-                ? products.length
-                : products.filter(p => p.category?.toLowerCase() === cat.toLowerCase()).length;
+              const hasProducts = cat === 'All'
+                ? products.length > 0
+                : products.some(p => p.category?.toLowerCase() === cat.toLowerCase());
 
               // Only show category pills that have at least 1 product (or 'All')
-              if (cat !== 'All' && count === 0) return null;
+              if (cat !== 'All' && !hasProducts) return null;
 
               const isActive = selectedCategory.toLowerCase() === cat.toLowerCase();
 
@@ -212,21 +219,16 @@ const Home = () => {
                   onClick={() => handleCategorySelect(cat)}
                 >
                   <span>{cat}</span>
-                  <span className="cat-pill-badge">{count}</span>
                 </button>
               );
             })}
           </div>
         )}
 
-        {/* CONTROLS TOOLBAR: Filter status, Sort, Price Filter */}
-        {!loading && (
+        {/* CONTROLS TOOLBAR: Sort & Price Filter - ONLY SHOWN WHEN SEARCHING */}
+        {!loading && isSearching && (
           <div className="filter-controls-toolbar">
             <div className="filter-toolbar-left">
-              <span className="products-count-label">
-                Showing <strong>{filteredProducts.length}</strong> {filteredProducts.length === 1 ? 'product' : 'products'}
-              </span>
-
               {activeFiltersCount > 0 && (
                 <button 
                   type="button" 
@@ -255,39 +257,28 @@ const Home = () => {
                 </select>
               </div>
 
-              {/* Quick Sort Options - ONLY shown when searching */}
-              {isSearching && (
-                <div className="filter-select-container sort-search-container">
-                  <ArrowUpDown size={14} className="filter-select-icon" />
-                  <select
-                    value={selectedSort}
-                    onChange={(e) => setSelectedSort(e.target.value)}
-                    className="filter-dropdown-select"
-                    aria-label="Sort searched products"
-                  >
-                    {SORT_OPTIONS.map((s) => (
-                      <option key={s.id} value={s.id}>{s.label}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              {/* Quick Sort Options */}
+              <div className="filter-select-container sort-search-container">
+                <ArrowUpDown size={14} className="filter-select-icon" />
+                <select
+                  value={selectedSort}
+                  onChange={(e) => setSelectedSort(e.target.value)}
+                  className="filter-dropdown-select"
+                  aria-label="Sort searched products"
+                >
+                  {SORT_OPTIONS.map((s) => (
+                    <option key={s.id} value={s.id}>{s.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
         )}
 
-        {/* ACTIVE FILTER TAGS PILLS */}
-        {!loading && (selectedCategory !== 'All' || selectedPriceRange !== 'all' || query) && (
+        {/* ACTIVE FILTER TAGS PILLS - ONLY SHOWN WHEN SEARCHING */}
+        {!loading && isSearching && (selectedCategory !== 'All' || selectedPriceRange !== 'all' || selectedSort !== 'featured') && (
           <div className="active-filter-tags-row">
-            <span className="active-tags-title">Active:</span>
-
-            {query && (
-              <span className="active-filter-chip">
-                Search: "{query}"
-                <button type="button" onClick={() => setSearchParams({})} title="Remove search filter">
-                  <X size={12} />
-                </button>
-              </span>
-            )}
+            <span className="active-tags-title">Active Filters:</span>
 
             {selectedCategory !== 'All' && (
               <span className="active-filter-chip">
@@ -307,7 +298,7 @@ const Home = () => {
               </span>
             )}
 
-            {isSearching && selectedSort !== 'featured' && (
+            {selectedSort !== 'featured' && (
               <span className="active-filter-chip">
                 Sort: {SORT_OPTIONS.find(s => s.id === selectedSort)?.label}
                 <button type="button" onClick={() => setSelectedSort('featured')} title="Reset sorting">
