@@ -20,6 +20,7 @@ import {
   X, 
   Package,
   Lock,
+  Mail,
   User,
   LogOut,
   ShieldCheck,
@@ -37,38 +38,6 @@ import {
   KeyRound
 } from 'lucide-react';
 
-// ========================================================
-// Cryptographic Salt & Salted SHA-256 Hash for Admin Security
-// The actual plaintext password is NEVER stored in code or bundles!
-// ========================================================
-const ADMIN_PASSWORD_SALT = 'ELITE_STORE_SALT_v2_2026';
-// Salted SHA-256 hash of: Elite@Narikkuni#2026! + ELITE_STORE_SALT_v2_2026
-const DEFAULT_ADMIN_HASH = '0784f4529b0e8d4b91d6c183ac38447565d1fc33a4675a27da43a18e66353918';
-const ALLOWED_ADMIN_USERNAMES = ['elite_admin', 'admin', 'shahin'];
-
-const computeSha256 = async (str) => {
-  const enc = new TextEncoder();
-  const hashBuffer = await crypto.subtle.digest('SHA-256', enc.encode(str));
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-};
-
-const validateAdminSession = () => {
-  try {
-    const raw = sessionStorage.getItem('elite_admin_session');
-    if (!raw) return false;
-    const session = JSON.parse(raw);
-    if (!session || !session.expiresAt) return false;
-    if (Date.now() > session.expiresAt) {
-      sessionStorage.removeItem('elite_admin_session');
-      return false;
-    }
-    return true;
-  } catch {
-    return false;
-  }
-};
-
 const CATEGORIES = [
   'Speakers & Audio',
   'LED Lights',
@@ -80,9 +49,10 @@ const CATEGORIES = [
 ];
 
 const Admin = () => {
-  // Authentication State
-  const [isAuthenticated, setIsAuthenticated] = useState(() => validateAdminSession());
-  const [loginIdentifier, setLoginIdentifier] = useState('');
+  // Authentication State (100% Supabase Cloud Auth)
+  const [session, setSession] = useState(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -130,11 +100,42 @@ const Admin = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Listen to Supabase Auth State changes & retrieve active session
   useEffect(() => {
-    if (isAuthenticated) {
+    let mounted = true;
+
+    if (!supabase?.auth) {
+      setCheckingAuth(false);
+      return;
+    }
+
+    supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
+      if (mounted) {
+        setSession(existingSession);
+        setCheckingAuth(false);
+      }
+    }).catch(() => {
+      if (mounted) setCheckingAuth(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => {
+      if (mounted) {
+        setSession(currentSession);
+        setCheckingAuth(false);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription?.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (session) {
       loadProducts();
     }
-  }, [isAuthenticated]);
+  }, [session]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -147,64 +148,20 @@ const Admin = () => {
       return;
     }
 
+    if (!supabase?.auth) {
+      setLoginError('Supabase authentication is not configured. Please check your Supabase credentials.');
+      return;
+    }
+
     setAuthenticating(true);
 
     try {
-      const input = loginIdentifier.trim();
-      const enteredPass = loginPassword;
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginEmail.trim(),
+        password: loginPassword
+      });
 
-      // 1. Check if user is signing in via official Supabase Auth (if an email with @ is entered)
-      if (input.includes('@') && supabase?.auth) {
-        try {
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email: input,
-            password: enteredPass
-          });
-
-          if (!error && data?.session) {
-            localStorage.removeItem('elite_admin_attempts');
-            localStorage.removeItem('elite_admin_lockout');
-
-            const sessionData = {
-              token: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36),
-              expiresAt: Date.now() + 4 * 60 * 60 * 1000, // 4 hours
-              user: input,
-              authMethod: 'supabase'
-            };
-            sessionStorage.setItem('elite_admin_session', JSON.stringify(sessionData));
-            setIsAuthenticated(true);
-            setLoginIdentifier('');
-            setLoginPassword('');
-            setAuthenticating(false);
-            return;
-          }
-        } catch (supabaseErr) {
-          console.warn('Supabase auth sign-in attempt:', supabaseErr.message);
-        }
-      }
-
-      // 2. Cryptographic Salted SHA-256 Hash Verification
-      const targetHash = import.meta.env.VITE_ADMIN_PASSWORD_HASH || DEFAULT_ADMIN_HASH;
-      const expectedUsername = (import.meta.env.VITE_ADMIN_USERNAME || 'elite_admin').toLowerCase();
-      const isAllowedUser = ALLOWED_ADMIN_USERNAMES.includes(input.toLowerCase()) || input.toLowerCase() === expectedUsername;
-
-      const computedHash = await computeSha256(enteredPass + ADMIN_PASSWORD_SALT);
-
-      if (isAllowedUser && computedHash === targetHash) {
-        localStorage.removeItem('elite_admin_attempts');
-        localStorage.removeItem('elite_admin_lockout');
-
-        const sessionData = {
-          token: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36),
-          expiresAt: Date.now() + 4 * 60 * 60 * 1000, // 4 hours
-          user: input,
-          authMethod: 'secure_hash'
-        };
-        sessionStorage.setItem('elite_admin_session', JSON.stringify(sessionData));
-        setIsAuthenticated(true);
-        setLoginIdentifier('');
-        setLoginPassword('');
-      } else {
+      if (error) {
         const currentAttempts = Number(localStorage.getItem('elite_admin_attempts') || 0) + 1;
         localStorage.setItem('elite_admin_attempts', String(currentAttempts));
 
@@ -215,11 +172,20 @@ const Admin = () => {
           setLoginError('Too many failed attempts. Admin portal is locked for 15 minutes to protect your store.');
         } else {
           const attemptsLeft = 5 - currentAttempts;
-          setLoginError(`Invalid credentials. ${attemptsLeft} ${attemptsLeft === 1 ? 'attempt' : 'attempts'} remaining before security lockout.`);
+          setLoginError(`${error.message || 'Invalid login credentials'}. (${attemptsLeft} ${attemptsLeft === 1 ? 'attempt' : 'attempts'} remaining)`);
         }
+        return;
+      }
+
+      if (data?.session) {
+        localStorage.removeItem('elite_admin_attempts');
+        localStorage.removeItem('elite_admin_lockout');
+        setSession(data.session);
+        setLoginEmail('');
+        setLoginPassword('');
       }
     } catch (err) {
-      setLoginError('Authentication service error. Please try again.');
+      setLoginError(err.message || 'Authentication error. Please try again.');
     } finally {
       setAuthenticating(false);
     }
@@ -230,9 +196,10 @@ const Admin = () => {
       if (supabase?.auth) {
         await supabase.auth.signOut();
       }
-    } catch {}
-    sessionStorage.removeItem('elite_admin_session');
-    setIsAuthenticated(false);
+    } catch (err) {
+      console.warn('Logout error:', err);
+    }
+    setSession(null);
   };
 
   const loadProducts = async () => {
@@ -564,8 +531,17 @@ const Admin = () => {
     }
   };
 
-  // If NOT authenticated, show the secure login form
-  if (!isAuthenticated) {
+  // Checking initial Supabase Auth session
+  if (checkingAuth) {
+    return (
+      <div className="admin-login-wrapper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="spinner" style={{ margin: 'auto' }} />
+      </div>
+    );
+  }
+
+  // If NOT authenticated, show the official Supabase Auth login form
+  if (!session) {
     return (
       <div className="admin-login-wrapper">
         <div className="admin-login-card">
@@ -574,7 +550,7 @@ const Admin = () => {
           </div>
           <h2>Admin Portal Login</h2>
           <p className="login-subtitle">
-            Restricted access. Sign in with your admin credentials or Supabase email.
+            Protected by Supabase Cloud Authentication. Sign in with your registered admin email.
           </p>
 
           {loginError && (
@@ -595,14 +571,14 @@ const Admin = () => {
 
           <form onSubmit={handleLogin} className="admin-login-form">
             <div className="login-input-group">
-              <label>Admin Username or Email</label>
+              <label>Admin Email</label>
               <div className="input-with-icon">
-                <User size={18} className="input-icon" />
+                <Mail size={18} className="input-icon" />
                 <input
-                  type="text"
-                  placeholder="elite_admin or Supabase email"
-                  value={loginIdentifier}
-                  onChange={(e) => setLoginIdentifier(e.target.value)}
+                  type="email"
+                  placeholder="admin@example.com"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
                   disabled={authenticating || lockoutSeconds > 0}
                   required
                   autoFocus
@@ -616,7 +592,7 @@ const Admin = () => {
                 <Lock size={18} className="input-icon" />
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter secure admin password"
+                  placeholder="Enter your Supabase password"
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
                   disabled={authenticating || lockoutSeconds > 0}
@@ -641,19 +617,19 @@ const Admin = () => {
             >
               {authenticating ? (
                 <>
-                  <div className="spinner-small" /> Verifying Credentials...
+                  <div className="spinner-small" /> Verifying with Supabase...
                 </>
               ) : (
                 <>
-                  <ShieldCheck size={18} /> Sign In Securely
+                  <ShieldCheck size={18} /> Sign In with Supabase
                 </>
               )}
             </button>
           </form>
 
           <div className="security-notice-badge">
-            <KeyRound size={13} />
-            <span>Cryptographic Salted Hash & Supabase Auth</span>
+            <ShieldCheck size={13} color="#10b981" />
+            <span>100% Protected by Supabase Cloud Authentication</span>
           </div>
 
           <Link to="/" className="login-footer-link" style={{ marginTop: '1.25rem' }}>
@@ -671,9 +647,17 @@ const Admin = () => {
         <Link to="/" className="back-btn" style={{ margin: 0 }}>
           <ArrowLeft size={18} /> Back to Store
         </Link>
-        <button onClick={handleLogout} className="logout-btn">
-          <LogOut size={16} /> Log Out
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {session?.user?.email && (
+            <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              <ShieldCheck size={15} color="#10b981" />
+              {session.user.email}
+            </span>
+          )}
+          <button onClick={handleLogout} className="logout-btn">
+            <LogOut size={16} /> Log Out
+          </button>
+        </div>
       </div>
 
       <div className="admin-header">
