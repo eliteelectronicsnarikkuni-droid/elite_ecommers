@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useLayoutEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getProducts } from '../services/productService';
+import { getProducts, getCachedProducts } from '../services/productService';
 import ProductCard from '../components/ProductCard';
 import { 
   SlidersHorizontal, 
@@ -44,8 +44,10 @@ const Home = () => {
   const query = searchParams.get('q') || '';
   const categoryFromUrl = searchParams.get('category') || 'All';
 
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Synchronously initialize from cache so back navigation renders full height immediately with 0ms delay!
+  const cachedInitial = getCachedProducts();
+  const [products, setProducts] = useState(() => cachedInitial || []);
+  const [loading, setLoading] = useState(() => !cachedInitial || cachedInitial.length === 0);
   const [error, setError] = useState(null);
 
   // Filter & Sort States
@@ -67,10 +69,29 @@ const Home = () => {
     }
   }, []);
 
+  // Restore scroll position when navigating back from ProductDetail
+  useLayoutEffect(() => {
+    const savedY = sessionStorage.getItem('home_scroll_y');
+    if (savedY !== null && products.length > 0) {
+      const targetY = Number(savedY);
+      window.scrollTo({ top: targetY, left: 0, behavior: 'instant' });
+
+      // Run on next tick as well in case layout is adjusting
+      const timer = setTimeout(() => {
+        window.scrollTo({ top: targetY, left: 0, behavior: 'instant' });
+        sessionStorage.removeItem('home_scroll_y');
+      }, 50);
+
+      return () => clearTimeout(timer);
+    }
+  }, [products]);
+
   useEffect(() => {
     let isMounted = true;
     const loadProducts = async () => {
-      setLoading(true);
+      if (!products || products.length === 0) {
+        setLoading(true);
+      }
       setError(null);
       try {
         const result = await getProducts();

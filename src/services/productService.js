@@ -145,6 +145,18 @@ export const invalidateProductCache = () => {
   } catch {}
 };
 
+export const getCachedProducts = () => {
+  if (memoryCache && Array.isArray(memoryCache.products) && memoryCache.products.length > 0) {
+    return memoryCache.products;
+  }
+  const sessionCache = getSessionCache();
+  if (sessionCache && Array.isArray(sessionCache.products) && sessionCache.products.length > 0) {
+    memoryCache = sessionCache;
+    return sessionCache.products;
+  }
+  return null;
+};
+
 export const getProducts = async ({ forceRefresh = false } = {}) => {
   // If not forcing refresh, return instant cache if available and non-empty
   if (!forceRefresh) {

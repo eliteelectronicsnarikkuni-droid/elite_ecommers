@@ -39,10 +39,18 @@ const ProductDetail = () => {
     };
   }, [id]);
 
+  const handleBack = () => {
+    if (window.history.state && window.history.state.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate('/');
+    }
+  };
+
   if (loading) {
     return (
       <div className="product-detail-container">
-        <button onClick={() => navigate(-1)} className="back-btn">
+        <button onClick={handleBack} className="back-btn">
           <ArrowLeft size={20} /> Back to Shop
         </button>
 
@@ -148,7 +156,7 @@ Is this item currently available?`;
 
   return (
     <div className="product-detail-container">
-      <button onClick={() => navigate(-1)} className="back-btn">
+      <button onClick={handleBack} className="back-btn">
         <ArrowLeft size={20} /> Back to Shop
       </button>
 

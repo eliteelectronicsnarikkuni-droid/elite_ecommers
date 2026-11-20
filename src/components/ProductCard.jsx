@@ -28,7 +28,11 @@ const ProductCard = ({ product }) => {
     <Link 
       to={`/product/${product.id}`} 
       className="product-card"
-      onClick={() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' })}
+      onClick={() => {
+        try {
+          sessionStorage.setItem('home_scroll_y', String(window.scrollY || window.pageYOffset || 0));
+        } catch {}
+      }}
     >
       <div className="product-image-container">
         <img 
