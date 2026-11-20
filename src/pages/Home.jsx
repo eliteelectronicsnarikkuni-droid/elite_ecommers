@@ -105,6 +105,15 @@ const Home = () => {
     return merged;
   }, [products]);
 
+  const isSearching = Boolean(query && query.trim());
+
+  // Automatically reset sort to 'featured' when search query is cleared
+  useEffect(() => {
+    if (!isSearching && selectedSort !== 'featured') {
+      setSelectedSort('featured');
+    }
+  }, [isSearching, selectedSort]);
+
   // Combined search, category filter, price filter & sorting
   const filteredProducts = useMemo(() => {
     const queryClean = query.trim().toLowerCase();
@@ -138,6 +147,7 @@ const Home = () => {
         return matchesQuery && matchesCategory && matchesPrice;
       })
       .sort((a, b) => {
+        if (!isSearching) return 0;
         if (selectedSort === 'price-low') {
           return Number(a.price || 0) - Number(b.price || 0);
         }
@@ -152,13 +162,13 @@ const Home = () => {
         }
         return 0; // Default Featured
       });
-  }, [products, query, selectedCategory, selectedPriceRange, selectedSort]);
+  }, [products, query, selectedCategory, selectedPriceRange, selectedSort, isSearching]);
 
   const activeFiltersCount = 
     (selectedCategory !== 'All' ? 1 : 0) + 
     (selectedPriceRange !== 'all' ? 1 : 0) + 
-    (selectedSort !== 'featured' ? 1 : 0) + 
-    (query ? 1 : 0);
+    (isSearching && selectedSort !== 'featured' ? 1 : 0) + 
+    (isSearching ? 1 : 0);
 
   const handleResetFilters = () => {
     setSelectedCategory('All');
@@ -245,20 +255,22 @@ const Home = () => {
                 </select>
               </div>
 
-              {/* Quick Sort Options */}
-              <div className="filter-select-container">
-                <ArrowUpDown size={14} className="filter-select-icon" />
-                <select
-                  value={selectedSort}
-                  onChange={(e) => setSelectedSort(e.target.value)}
-                  className="filter-dropdown-select"
-                  aria-label="Sort products"
-                >
-                  {SORT_OPTIONS.map((s) => (
-                    <option key={s.id} value={s.id}>{s.label}</option>
-                  ))}
-                </select>
-              </div>
+              {/* Quick Sort Options - ONLY shown when searching */}
+              {isSearching && (
+                <div className="filter-select-container sort-search-container">
+                  <ArrowUpDown size={14} className="filter-select-icon" />
+                  <select
+                    value={selectedSort}
+                    onChange={(e) => setSelectedSort(e.target.value)}
+                    className="filter-dropdown-select"
+                    aria-label="Sort searched products"
+                  >
+                    {SORT_OPTIONS.map((s) => (
+                      <option key={s.id} value={s.id}>{s.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -295,7 +307,7 @@ const Home = () => {
               </span>
             )}
 
-            {selectedSort !== 'featured' && (
+            {isSearching && selectedSort !== 'featured' && (
               <span className="active-filter-chip">
                 Sort: {SORT_OPTIONS.find(s => s.id === selectedSort)?.label}
                 <button type="button" onClick={() => setSelectedSort('featured')} title="Reset sorting">
