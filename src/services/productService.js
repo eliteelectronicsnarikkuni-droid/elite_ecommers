@@ -120,7 +120,7 @@ const getSessionCache = () => {
     const raw = sessionStorage.getItem('elite_products_cache');
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (parsed && Array.isArray(parsed.products) && (Date.now() - parsed.timestamp < CACHE_TTL * 3)) {
+    if (parsed && Array.isArray(parsed.products) && parsed.products.length > 0 && (Date.now() - parsed.timestamp < CACHE_TTL * 3)) {
       return parsed;
     }
   } catch {}
@@ -128,6 +128,7 @@ const getSessionCache = () => {
 };
 
 const setSessionCache = (products) => {
+  if (!Array.isArray(products) || products.length === 0) return;
   try {
     sessionStorage.setItem('elite_products_cache', JSON.stringify({
       products,
@@ -145,9 +146,9 @@ export const invalidateProductCache = () => {
 };
 
 export const getProducts = async ({ forceRefresh = false } = {}) => {
-  // If not forcing refresh, return instant cache if available
+  // If not forcing refresh, return instant cache if available and non-empty
   if (!forceRefresh) {
-    if (memoryCache && Array.isArray(memoryCache.products) && (Date.now() - memoryCache.timestamp < CACHE_TTL)) {
+    if (memoryCache && Array.isArray(memoryCache.products) && memoryCache.products.length > 0 && (Date.now() - memoryCache.timestamp < CACHE_TTL)) {
       return {
         products: memoryCache.products,
         source: 'memory_cache'
@@ -155,7 +156,7 @@ export const getProducts = async ({ forceRefresh = false } = {}) => {
     }
 
     const sessionCache = getSessionCache();
-    if (sessionCache && Array.isArray(sessionCache.products)) {
+    if (sessionCache && Array.isArray(sessionCache.products) && sessionCache.products.length > 0) {
       memoryCache = sessionCache;
       return {
         products: sessionCache.products,
@@ -170,7 +171,6 @@ export const getProducts = async ({ forceRefresh = false } = {}) => {
   }
 
   if (!isSupabaseConfigured) {
-    memoryCache = { products: [], timestamp: Date.now() };
     return {
       products: [],
       source: 'local'
@@ -184,9 +184,9 @@ export const getProducts = async ({ forceRefresh = false } = {}) => {
         .select('*')
         .order('id', { ascending: true });
 
-      // 6.5s timeout prevents free Supabase cold-start from freezing user interface
+      // 8s timeout prevents free Supabase cold-start from freezing user interface
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Supabase response timed out')), 6500)
+        setTimeout(() => reject(new Error('Supabase response timed out')), 8000)
       );
 
       const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
@@ -204,8 +204,10 @@ export const getProducts = async ({ forceRefresh = false } = {}) => {
       }
 
       const normalized = (data || []).map(normalizeProduct);
-      memoryCache = { products: normalized, timestamp: Date.now() };
-      setSessionCache(normalized);
+      if (normalized.length > 0) {
+        memoryCache = { products: normalized, timestamp: Date.now() };
+        setSessionCache(normalized);
+      }
 
       return {
         products: normalized,
