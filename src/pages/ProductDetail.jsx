@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getProductById } from '../services/productService';
-import { ArrowLeft, MessageCircle, Tag, ChevronLeft, ChevronRight, Camera } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Tag, ChevronLeft, ChevronRight, Camera, Zap } from 'lucide-react';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -248,6 +248,13 @@ Is this item currently available?`;
                 🎉 Special Deal! You save <strong>₹{savingsFormatted}</strong> ({discountPercentage}% OFF MRP)
               </p>
             )}
+
+            {/* In-page Flipkart-Style Buy Now Button (Above the fold - No scroll needed!) */}
+            <button className="flipkart-buy-now-btn" onClick={handleBuyNow} type="button">
+              <Zap size={22} className="buy-now-bolt" fill="currentColor" />
+              <span className="buy-now-text">BUY NOW VIA WHATSAPP</span>
+              <MessageCircle size={20} className="buy-now-wa-icon" />
+            </button>
           </div>
 
           <div className="detail-description">
@@ -265,11 +272,25 @@ Is this item currently available?`;
               </ul>
             </div>
           )}
-
-          <button className="buy-now-btn" onClick={handleBuyNow}>
-            <MessageCircle size={20} /> Buy Now via WhatsApp
-          </button>
         </div>
+      </div>
+
+      {/* Mobile Fixed Sticky Buy Bar (Flipkart Style - Pinned to bottom, No Scroll Needed) */}
+      <div className="flipkart-mobile-sticky-bar">
+        <div className="sticky-price-group">
+          <div className="sticky-price-val">₹{offerPriceFormatted}</div>
+          {hasDiscount && (
+            <div className="sticky-mrp-group">
+              <span className="sticky-mrp">₹{originalPriceFormatted}</span>
+              <span className="sticky-discount-tag">{discountPercentage}% OFF</span>
+            </div>
+          )}
+        </div>
+        <button className="flipkart-sticky-action-btn" onClick={handleBuyNow} type="button">
+          <Zap size={18} fill="currentColor" />
+          <span>BUY NOW</span>
+          <MessageCircle size={16} />
+        </button>
       </div>
     </div>
   );

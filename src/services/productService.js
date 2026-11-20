@@ -1,5 +1,4 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { products as fallbackProducts } from '../data/products';
 import { compressImage } from '../utils/imageCompressor';
 
 const normalizeProduct = (row) => {
@@ -171,10 +170,9 @@ export const getProducts = async ({ forceRefresh = false } = {}) => {
   }
 
   if (!isSupabaseConfigured) {
-    const fallback = fallbackProducts.map(normalizeProduct);
-    memoryCache = { products: fallback, timestamp: Date.now() };
+    memoryCache = { products: [], timestamp: Date.now() };
     return {
-      products: fallback,
+      products: [],
       source: 'local'
     };
   }
@@ -198,10 +196,9 @@ export const getProducts = async ({ forceRefresh = false } = {}) => {
         if (memoryCache?.products?.length) {
           return { products: memoryCache.products, source: 'stale_cache' };
         }
-        const fallback = fallbackProducts.map(normalizeProduct);
         return {
-          products: fallback,
-          source: 'local_fallback',
+          products: [],
+          source: 'error',
           error: error.message
         };
       }
@@ -225,8 +222,8 @@ export const getProducts = async ({ forceRefresh = false } = {}) => {
         return { products: sessionCache.products, source: 'session_cache' };
       }
       return {
-        products: fallbackProducts.map(normalizeProduct),
-        source: 'local_fallback',
+        products: [],
+        source: 'error',
         error: err.message
       };
     } finally {
@@ -262,9 +259,8 @@ export const getProductById = async (id) => {
   }
 
   if (!isSupabaseConfigured) {
-    const local = fallbackProducts.find((p) => String(p.id) === String(id));
     return {
-      product: local ? normalizeProduct(local) : null,
+      product: null,
       source: 'local'
     };
   }
@@ -278,19 +274,17 @@ export const getProductById = async (id) => {
 
     if (error) {
       console.error(`Error fetching product ${id} from Supabase:`, error.message);
-      const local = fallbackProducts.find((p) => String(p.id) === String(id));
       return {
-        product: local ? normalizeProduct(local) : null,
-        source: 'local_fallback',
+        product: null,
+        source: 'error',
         error: error.message
       };
     }
 
     if (!data) {
-      const local = fallbackProducts.find((p) => String(p.id) === String(id));
       return {
-        product: local ? normalizeProduct(local) : null,
-        source: local ? 'local_fallback' : 'supabase'
+        product: null,
+        source: 'not_found'
       };
     }
 
@@ -300,10 +294,9 @@ export const getProductById = async (id) => {
     };
   } catch (err) {
     console.error('Unexpected error fetching product:', err);
-    const local = fallbackProducts.find((p) => String(p.id) === String(id));
     return {
-      product: local ? normalizeProduct(local) : null,
-      source: 'local_fallback',
+      product: null,
+      source: 'error',
       error: err.message
     };
   }
