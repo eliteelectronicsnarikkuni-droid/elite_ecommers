@@ -248,13 +248,6 @@ Is this item currently available?`;
                 🎉 Special Deal! You save <strong>₹{savingsFormatted}</strong> ({discountPercentage}% OFF MRP)
               </p>
             )}
-
-            {/* In-page Flipkart-Style Buy Now Button (Above the fold - No scroll needed!) */}
-            <button className="flipkart-buy-now-btn" onClick={handleBuyNow} type="button">
-              <Zap size={22} className="buy-now-bolt" fill="currentColor" />
-              <span className="buy-now-text">BUY NOW VIA WHATSAPP</span>
-              <MessageCircle size={20} className="buy-now-wa-icon" />
-            </button>
           </div>
 
           <div className="detail-description">
@@ -275,22 +268,34 @@ Is this item currently available?`;
         </div>
       </div>
 
-      {/* Mobile Fixed Sticky Buy Bar (Flipkart Style - Pinned to bottom, No Scroll Needed) */}
-      <div className="flipkart-mobile-sticky-bar">
-        <div className="sticky-price-group">
-          <div className="sticky-price-val">₹{offerPriceFormatted}</div>
-          {hasDiscount && (
-            <div className="sticky-mrp-group">
-              <span className="sticky-mrp">₹{originalPriceFormatted}</span>
-              <span className="sticky-discount-tag">{discountPercentage}% OFF</span>
+      {/* Fixed Non-Scrollable WhatsApp Buy Bar (Only One Button - Active on All Display Devices) */}
+      <div className="fixed-sticky-buy-bar">
+        <div className="sticky-buy-bar-inner">
+          <div className="sticky-product-summary">
+            <img 
+              src={currentImageUrl} 
+              alt={product.name} 
+              className="sticky-product-thumb" 
+            />
+            <div className="sticky-details">
+              <span className="sticky-product-name">{product.name}</span>
+              <div className="sticky-price-row">
+                <span className="sticky-offer-price">₹{offerPriceFormatted}</span>
+                {hasDiscount && (
+                  <>
+                    <span className="sticky-actual-price">₹{originalPriceFormatted}</span>
+                    <span className="sticky-discount-pill">{discountPercentage}% OFF</span>
+                  </>
+                )}
+              </div>
             </div>
-          )}
+          </div>
+
+          <button className="whatsapp-buy-now-sticky-btn" onClick={handleBuyNow} type="button">
+            <MessageCircle size={22} className="wa-icon" />
+            <span>Buy Now via WhatsApp</span>
+          </button>
         </div>
-        <button className="flipkart-sticky-action-btn" onClick={handleBuyNow} type="button">
-          <Zap size={18} fill="currentColor" />
-          <span>BUY NOW</span>
-          <MessageCircle size={16} />
-        </button>
       </div>
     </div>
   );
