@@ -9,10 +9,12 @@ const ProductDetail = () => {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [selectedColorIndex, setSelectedColorIndex] = useState(0);
 
   useEffect(() => {
     window.scrollTo(0, 0);
     setActiveImageIndex(0);
+    setSelectedColorIndex(0);
     let isMounted = true;
     const loadProduct = async () => {
       setLoading(true);
@@ -21,6 +23,7 @@ const ProductDetail = () => {
         if (isMounted) {
           setProduct(data);
           setActiveImageIndex(0);
+          setSelectedColorIndex(0);
           window.scrollTo(0, 0);
         }
       } catch (err) {
@@ -96,7 +99,6 @@ const ProductDetail = () => {
   // Color Options
   const colors = Array.isArray(product.colors) ? product.colors : [];
   const hasColors = colors.length > 0;
-  const [selectedColorIndex, setSelectedColorIndex] = useState(0);
 
   // Active color and its specific image gallery
   const activeColor = hasColors ? colors[selectedColorIndex] || colors[0] : null;
