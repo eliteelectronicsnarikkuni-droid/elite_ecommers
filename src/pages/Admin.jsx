@@ -815,8 +815,32 @@ const Admin = () => {
     }
   };
 
-  const handleToggleVisibility = async (product) => {
-    const nextHidden = !product.isHidden;
+  const requestToggleVisibility = (product) => {
+    const willHide = !product.isHidden;
+    if (willHide) {
+      setConfirmModal({
+        isOpen: true,
+        type: 'hide_product',
+        title: 'Hide Product from Buyers?',
+        message: `Are you sure you want to hide "${product.name}"? Buyers will not see this product in search results, categories, or the home catalog.`,
+        confirmText: 'Yes, Hide Product',
+        confirmVariant: 'warning',
+        onConfirm: () => executeToggleVisibility(product, true)
+      });
+    } else {
+      setConfirmModal({
+        isOpen: true,
+        type: 'show_product',
+        title: 'Show Product to Buyers?',
+        message: `Are you sure you want to show "${product.name}" to buyers? It will immediately be visible to all customers in the store.`,
+        confirmText: 'Yes, Show Product',
+        confirmVariant: 'primary',
+        onConfirm: () => executeToggleVisibility(product, false)
+      });
+    }
+  };
+
+  const executeToggleVisibility = async (product, nextHidden) => {
     setTogglingVisibilityId(product.id);
 
     // Optimistically update product in state
@@ -1678,7 +1702,7 @@ const Admin = () => {
                           <button
                             type="button"
                             className={`visibility-status-btn ${p.isHidden ? 'status-hidden' : 'status-visible'}`}
-                            onClick={() => handleToggleVisibility(p)}
+                            onClick={() => requestToggleVisibility(p)}
                             disabled={togglingVisibilityId === p.id}
                             title={p.isHidden ? 'Currently hidden from buyers. Click to show in store.' : 'Currently visible to buyers. Click to hide from store.'}
                           >
@@ -1715,7 +1739,7 @@ const Admin = () => {
                             <button
                               type="button"
                               className={`action-vis-btn ${p.isHidden ? 'action-show' : 'action-hide'}`}
-                              onClick={() => handleToggleVisibility(p)}
+                              onClick={() => requestToggleVisibility(p)}
                               disabled={togglingVisibilityId === p.id}
                               title={p.isHidden ? 'Show product to store buyers' : 'Hide product from store buyers'}
                             >
@@ -1777,8 +1801,14 @@ const Admin = () => {
             </button>
 
             <div className={`admin-modal-icon-wrap ${confirmModal.confirmVariant}`}>
-              {confirmModal.confirmVariant === 'danger' ? (
+              {confirmModal.type === 'hide_product' ? (
+                <EyeOff size={28} />
+              ) : confirmModal.type === 'show_product' ? (
+                <Eye size={28} />
+              ) : confirmModal.confirmVariant === 'danger' ? (
                 <Trash2 size={28} />
+              ) : confirmModal.confirmVariant === 'warning' ? (
+                <AlertTriangle size={28} />
               ) : (
                 <Pencil size={28} />
               )}
@@ -1806,8 +1836,10 @@ const Admin = () => {
                 }}
                 disabled={submitting}
               >
-                {confirmModal.confirmVariant === 'danger' && <Trash2 size={16} />}
-                {confirmModal.confirmVariant === 'primary' && <CheckCircle2 size={16} />}
+                {confirmModal.type === 'hide_product' && <EyeOff size={16} />}
+                {confirmModal.type === 'show_product' && <Eye size={16} />}
+                {confirmModal.type !== 'hide_product' && confirmModal.type !== 'show_product' && confirmModal.confirmVariant === 'danger' && <Trash2 size={16} />}
+                {confirmModal.type !== 'hide_product' && confirmModal.type !== 'show_product' && confirmModal.confirmVariant === 'primary' && <CheckCircle2 size={16} />}
                 {confirmModal.confirmText}
               </button>
             </div>

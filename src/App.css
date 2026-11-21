@@ -4287,6 +4287,12 @@
   border: 2px solid #dbeafe;
 }
 
+.admin-modal-icon-wrap.warning {
+  background: #fffbeb;
+  color: #d97706;
+  border: 2px solid #fde68a;
+}
+
 .admin-modal-title {
   font-size: 1.25rem;
   font-weight: 700;
@@ -4357,6 +4363,18 @@
 
 .admin-modal-btn.confirm.primary:hover {
   background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.admin-modal-btn.confirm.warning {
+  background: #d97706;
+  color: #ffffff;
+  border: 1px solid #b45309;
+  box-shadow: 0 4px 10px rgba(217, 119, 6, 0.25);
+}
+
+.admin-modal-btn.confirm.warning:hover {
+  background: #b45309;
   transform: translateY(-1px);
 }
 
