@@ -68,7 +68,8 @@ const Navbar = () => {
       try {
         const res = await getProducts();
         if (isMounted && res.products) {
-          setCatalog(res.products);
+          // Filter out products hidden by admin so buyers do not see them in search suggestions
+          setCatalog(res.products.filter(p => !p.isHidden));
         }
       } catch (err) {
         console.warn('Navbar suggestion catalog load warning:', err);
@@ -209,6 +210,7 @@ const Navbar = () => {
   const matchingProducts = queryClean
     ? catalog
         .filter((p) => {
+          if (p.isHidden) return false;
           const name = (p.name || '').toLowerCase();
           const cat = (p.category || '').toLowerCase();
           const desc = (p.description || '').toLowerCase();

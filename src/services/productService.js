@@ -17,10 +17,11 @@ const normalizeProduct = (row) => {
     }
   }
 
-  // Extract __mrp__:, __images__:, and __colors__: metadata if stored in features
+  // Extract __mrp__:, __images__:, __colors__:, and __hidden__: metadata if stored in features
   const cleanFeatures = [];
   let imagesFromFeatures = [];
   let colorsFromFeatures = [];
+  let hiddenFromFeatures = false;
   for (const f of rawFeatures) {
     if (typeof f === 'string' && f.startsWith('__mrp__:')) {
       const parsed = Number(f.replace('__mrp__:', '').trim());
@@ -44,6 +45,11 @@ const normalizeProduct = (row) => {
         }
       } catch (e) {
         console.warn('Failed parsing __colors__ from features:', e);
+      }
+    } else if (typeof f === 'string' && f.startsWith('__hidden__:')) {
+      const val = f.replace('__hidden__:', '').trim().toLowerCase();
+      if (val === 'true' || val === '1') {
+        hiddenFromFeatures = true;
       }
     } else {
       cleanFeatures.push(f);
@@ -126,6 +132,18 @@ const normalizeProduct = (row) => {
     discountPercentage = Math.round(((originalPrice - offerPrice) / originalPrice) * 100);
   }
 
+  // Determine visibility status (Default: visible / not hidden)
+  let isHidden = false;
+  if (row.is_hidden !== undefined && row.is_hidden !== null) {
+    isHidden = Boolean(row.is_hidden);
+  } else if (row.is_visible !== undefined && row.is_visible !== null) {
+    isHidden = !Boolean(row.is_visible);
+  } else if (row.isHidden !== undefined && row.isHidden !== null) {
+    isHidden = Boolean(row.isHidden);
+  } else if (hiddenFromFeatures) {
+    isHidden = true;
+  }
+
   return {
     id: String(row.id),
     name: row.name || '',
@@ -138,6 +156,7 @@ const normalizeProduct = (row) => {
     images: imagesList,
     colors: productColors,
     features: cleanFeatures,
+    isHidden: Boolean(isHidden),
     createdAt: row.created_at || row.createdAt || null
   };
 };
@@ -423,6 +442,10 @@ export const createProduct = async (productData) => {
   if (colorsList.length > 0) {
     featuresList.push(`__colors__:${JSON.stringify(colorsList)}`);
   }
+  const isHidden = Boolean(productData.isHidden);
+  if (isHidden) {
+    featuresList.push('__hidden__:true');
+  }
 
   const newProduct = {
     name: productData.name,
@@ -430,7 +453,8 @@ export const createProduct = async (productData) => {
     description: productData.description || '',
     category: productData.category || 'General',
     image_url: primaryImage,
-    features: featuresList
+    features: featuresList,
+    is_hidden: isHidden
   };
 
   if (originalPrice !== null && !isNaN(originalPrice)) {
@@ -443,11 +467,10 @@ export const createProduct = async (productData) => {
     .select()
     .single();
 
-  // If column original_price doesn't exist yet (PostgreSQL error 42703), retry without original_price field
-  // The __mrp__: in features ensures the original price is safely preserved!
-  if (error && (error.code === '42703' || error.message?.includes('original_price'))) {
-    console.warn('Column original_price does not exist yet. Retrying product insert with features-embedded MRP...');
-    delete newProduct.original_price;
+  // If column original_price or is_hidden doesn't exist yet (PostgreSQL error 42703), retry
+  if (error && (error.code === '42703' || error.message?.includes('is_hidden') || error.message?.includes('original_price'))) {
+    if (error.message?.includes('is_hidden')) delete newProduct.is_hidden;
+    if (error.message?.includes('original_price')) delete newProduct.original_price;
     const retryRes = await supabase
       .from('products')
       .insert([newProduct])
@@ -455,6 +478,18 @@ export const createProduct = async (productData) => {
       .single();
     data = retryRes.data;
     error = retryRes.error;
+
+    if (error && (error.code === '42703' || error.message?.includes('is_hidden') || error.message?.includes('original_price'))) {
+      delete newProduct.is_hidden;
+      delete newProduct.original_price;
+      const secondRetry = await supabase
+        .from('products')
+        .insert([newProduct])
+        .select()
+        .single();
+      data = secondRetry.data;
+      error = secondRetry.error;
+    }
   }
 
   if (error) {
@@ -487,8 +522,10 @@ export const updateProduct = async (id, productData) => {
   }
   const primaryImage = imagesList[0] || productData.imageUrl || '';
 
-  // Embed __mrp__:, __images__:, and __colors__: metadata into features list so original data is permanently saved
-  const featuresList = [...(productData.features || [])];
+  // Embed __mrp__:, __images__:, __colors__:, and __hidden__: metadata into features list
+  const featuresList = (productData.features || []).filter(
+    (f) => typeof f !== 'string' || (!f.startsWith('__hidden__:') && !f.startsWith('__mrp__:') && !f.startsWith('__images__:') && !f.startsWith('__colors__:'))
+  );
   if (originalPrice && !isNaN(originalPrice) && originalPrice > 0) {
     featuresList.push(`__mrp__:${originalPrice}`);
   }
@@ -498,6 +535,10 @@ export const updateProduct = async (id, productData) => {
   if (colorsList.length > 0) {
     featuresList.push(`__colors__:${JSON.stringify(colorsList)}`);
   }
+  const isHidden = Boolean(productData.isHidden);
+  if (isHidden) {
+    featuresList.push('__hidden__:true');
+  }
 
   const updatedProduct = {
     name: productData.name,
@@ -505,7 +546,8 @@ export const updateProduct = async (id, productData) => {
     description: productData.description || '',
     category: productData.category || 'General',
     image_url: primaryImage,
-    features: featuresList
+    features: featuresList,
+    is_hidden: isHidden
   };
 
   if (originalPrice !== null && !isNaN(originalPrice)) {
@@ -519,13 +561,91 @@ export const updateProduct = async (id, productData) => {
     .select()
     .single();
 
-  // If column original_price doesn't exist yet (PostgreSQL error 42703), retry update without original_price field
-  if (error && (error.code === '42703' || error.message?.includes('original_price'))) {
-    console.warn('Column original_price does not exist yet. Retrying product update with features-embedded MRP...');
-    delete updatedProduct.original_price;
+  // If column original_price or is_hidden doesn't exist yet, retry without failing column
+  if (error && (error.code === '42703' || error.message?.includes('is_hidden') || error.message?.includes('original_price'))) {
+    if (error.message?.includes('is_hidden')) delete updatedProduct.is_hidden;
+    if (error.message?.includes('original_price')) delete updatedProduct.original_price;
     const retryRes = await supabase
       .from('products')
       .update(updatedProduct)
+      .eq('id', id)
+      .select()
+      .single();
+    data = retryRes.data;
+    error = retryRes.error;
+
+    if (error && (error.code === '42703' || error.message?.includes('is_hidden') || error.message?.includes('original_price'))) {
+      delete updatedProduct.is_hidden;
+      delete updatedProduct.original_price;
+      const secondRetry = await supabase
+        .from('products')
+        .update(updatedProduct)
+        .eq('id', id)
+        .select()
+        .single();
+      data = secondRetry.data;
+      error = secondRetry.error;
+    }
+  }
+
+  if (error) {
+    throw error;
+  }
+
+  invalidateProductCache();
+  return normalizeProduct(data);
+};
+
+export const toggleProductVisibility = async (id, isHidden) => {
+  if (!supabase || !isSupabaseConfigured) {
+    throw new Error('Supabase is not configured');
+  }
+
+  const { data: current, error: fetchErr } = await supabase
+    .from('products')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (fetchErr || !current) {
+    throw new Error(fetchErr?.message || 'Product not found');
+  }
+
+  let rawFeatures = [];
+  if (Array.isArray(current.features)) {
+    rawFeatures = current.features;
+  } else if (typeof current.features === 'string') {
+    try {
+      rawFeatures = JSON.parse(current.features);
+    } catch {
+      rawFeatures = current.features.split(',').map((f) => f.trim());
+    }
+  }
+
+  const newFeatures = rawFeatures.filter(
+    (f) => typeof f !== 'string' || !f.startsWith('__hidden__:')
+  );
+  if (isHidden) {
+    newFeatures.push('__hidden__:true');
+  }
+
+  const updatePayload = {
+    features: newFeatures,
+    is_hidden: Boolean(isHidden)
+  };
+
+  let { data, error } = await supabase
+    .from('products')
+    .update(updatePayload)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error && (error.code === '42703' || error.message?.includes('is_hidden'))) {
+    delete updatePayload.is_hidden;
+    const retryRes = await supabase
+      .from('products')
+      .update(updatePayload)
       .eq('id', id)
       .select()
       .single();

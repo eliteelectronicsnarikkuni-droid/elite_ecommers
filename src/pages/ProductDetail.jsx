@@ -83,12 +83,15 @@ const ProductDetail = () => {
     );
   }
 
-  if (!product) {
+  if (!product || product.isHidden) {
     return (
       <div className="not-found">
-        <h2>Product not found</h2>
-        <button onClick={() => navigate('/')} className="back-btn" style={{ marginTop: '1rem' }}>
-          Go back home
+        <h2>Product Not Available</h2>
+        <p style={{ color: 'var(--color-text-light)', marginTop: '0.5rem' }}>
+          This product is currently hidden or unavailable in the store.
+        </p>
+        <button onClick={() => navigate('/')} className="back-btn" style={{ marginTop: '1.25rem' }}>
+          <ArrowLeft size={18} /> Explore Store Products
         </button>
       </div>
     );

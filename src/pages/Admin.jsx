@@ -6,7 +6,8 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
-  uploadProductImage
+  uploadProductImage,
+  toggleProductVisibility
 } from '../services/productService';
 import { compressImage, formatFileSize } from '../utils/imageCompressor';
 import {
@@ -67,6 +68,8 @@ const Admin = () => {
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null); // { type: 'success' | 'error' | 'info', message: '' }
   const [editingProductId, setEditingProductId] = useState(null);
+  const [visibilityFilter, setVisibilityFilter] = useState('all'); // 'all' | 'visible' | 'hidden'
+  const [togglingVisibilityId, setTogglingVisibilityId] = useState(null);
 
   // Form State
   const [name, setName] = useState('');
@@ -76,6 +79,7 @@ const Admin = () => {
   const [customCategory, setCustomCategory] = useState('');
   const [description, setDescription] = useState('');
   const [features, setFeatures] = useState(['', '']);
+  const [isHidden, setIsHidden] = useState(false); // false = Show to buyers, true = Hide from buyers
   const [imageItems, setImageItems] = useState([]); // Array of { id, url, file, previewUrl, compressionInfo }
   const [compressing, setCompressing] = useState(false);
   const [compressProgress, setCompressProgress] = useState('');
@@ -505,6 +509,7 @@ const Admin = () => {
     }
 
     setDescription(product.description || '');
+    setIsHidden(Boolean(product.isHidden));
 
     const prodFeatures = Array.isArray(product.features) && product.features.length > 0
       ? product.features
@@ -605,6 +610,7 @@ const Admin = () => {
     setCustomCategory('');
     setDescription('');
     setFeatures(['', '']);
+    setIsHidden(false);
     setHasColorVariants(false);
     setColorVariants([]);
     setImageItems([]);
@@ -746,7 +752,8 @@ const Admin = () => {
         imageUrl: primaryImageUrl,
         images: finalImages,
         colors: finalColors,
-        features: cleanFeatures
+        features: cleanFeatures,
+        isHidden: Boolean(isHidden)
       };
 
       if (editingProductId) {
@@ -805,6 +812,38 @@ const Admin = () => {
         type: 'error',
         message: err.message || 'Failed to delete product.'
       });
+    }
+  };
+
+  const handleToggleVisibility = async (product) => {
+    const nextHidden = !product.isHidden;
+    setTogglingVisibilityId(product.id);
+
+    // Optimistically update product in state
+    setProducts((prev) =>
+      prev.map((p) => (p.id === product.id ? { ...p, isHidden: nextHidden } : p))
+    );
+
+    try {
+      await toggleProductVisibility(product.id, nextHidden);
+      setFeedback({
+        type: 'success',
+        message: nextHidden
+          ? `"${product.name}" is now HIDDEN from buyers.`
+          : `"${product.name}" is now VISIBLE to buyers!`
+      });
+    } catch (err) {
+      console.error('Failed to toggle visibility:', err);
+      // Revert state on error
+      setProducts((prev) =>
+        prev.map((p) => (p.id === product.id ? { ...p, isHidden: product.isHidden } : p))
+      );
+      setFeedback({
+        type: 'error',
+        message: err.message || 'Failed to update product visibility.'
+      });
+    } finally {
+      setTogglingVisibilityId(null);
     }
   };
 
@@ -1430,6 +1469,47 @@ const Admin = () => {
               </div>
             )}
 
+            {/* STORE VISIBILITY SETTING */}
+            <div className="admin-visibility-box">
+              <div className="vis-box-header">
+                <div className="vis-box-title-wrap">
+                  {isHidden ? (
+                    <EyeOff size={17} className="vis-title-icon hidden-color" />
+                  ) : (
+                    <Eye size={17} className="vis-title-icon visible-color" />
+                  )}
+                  <span className="vis-box-title">Buyer Store Visibility</span>
+                </div>
+                <span className={`vis-status-badge ${isHidden ? 'badge-hidden' : 'badge-visible'}`}>
+                  {isHidden ? 'Hidden from Buyers' : 'Visible to Buyers'}
+                </span>
+              </div>
+              <div className="vis-toggle-options">
+                <button
+                  type="button"
+                  className={`vis-option-btn ${!isHidden ? 'selected' : ''}`}
+                  onClick={() => setIsHidden(false)}
+                >
+                  <Eye size={16} />
+                  <div className="vis-option-desc">
+                    <strong>Show to Buyers</strong>
+                    <span>Product is visible in home catalog, search, and category listing</span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className={`vis-option-btn ${isHidden ? 'selected-hidden' : ''}`}
+                  onClick={() => setIsHidden(true)}
+                >
+                  <EyeOff size={16} />
+                  <div className="vis-option-desc">
+                    <strong>Hide from Buyers</strong>
+                    <span>Product is hidden from buyers (only visible in Admin panel)</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+
             <button
               type="submit"
               className={`submit-product-btn ${editingProductId ? 'update-mode' : ''}`}
@@ -1455,9 +1535,38 @@ const Admin = () => {
 
         {/* EXISTING PRODUCTS LIST */}
         <div className="admin-card">
-          <div className="card-title">
-            <Package size={22} />
-            <h2>Store Products ({products.length})</h2>
+          <div className="card-title-header">
+            <div className="card-title">
+              <Package size={22} />
+              <h2>Store Products ({products.length})</h2>
+            </div>
+
+            {/* Quick Visibility Filter Tabs */}
+            <div className="admin-visibility-filter-tabs">
+              <button
+                type="button"
+                className={`admin-vis-tab ${visibilityFilter === 'all' ? 'active' : ''}`}
+                onClick={() => setVisibilityFilter('all')}
+              >
+                All ({products.length})
+              </button>
+              <button
+                type="button"
+                className={`admin-vis-tab vis-visible-tab ${visibilityFilter === 'visible' ? 'active' : ''}`}
+                onClick={() => setVisibilityFilter('visible')}
+                title="Show only products currently visible to buyers"
+              >
+                <Eye size={13} /> Shown ({products.filter((p) => !p.isHidden).length})
+              </button>
+              <button
+                type="button"
+                className={`admin-vis-tab vis-hidden-tab ${visibilityFilter === 'hidden' ? 'active' : ''}`}
+                onClick={() => setVisibilityFilter('hidden')}
+                title="Show only products hidden from buyers"
+              >
+                <EyeOff size={13} /> Hidden ({products.filter((p) => p.isHidden).length})
+              </button>
+            </div>
           </div>
 
           {loading ? (
@@ -1475,12 +1584,19 @@ const Admin = () => {
                     <th>Item</th>
                     <th>Category</th>
                     <th>Pricing</th>
+                    <th>Visibility</th>
                     <th>Added On</th>
                     <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {products.map((p) => {
+                  {products
+                    .filter((p) => {
+                      if (visibilityFilter === 'visible') return !p.isHidden;
+                      if (visibilityFilter === 'hidden') return p.isHidden;
+                      return true;
+                    })
+                    .map((p) => {
                     const priceFormatted = Number(p.price || 0).toLocaleString('en-IN', {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2
@@ -1506,7 +1622,10 @@ const Admin = () => {
                       : null;
 
                     return (
-                      <tr key={p.id} className={editingProductId === p.id ? 'row-editing' : ''}>
+                      <tr 
+                        key={p.id} 
+                        className={`${editingProductId === p.id ? 'row-editing' : ''} ${p.isHidden ? 'row-hidden' : ''}`}
+                      >
                         <td className="product-cell" data-label="Item">
                           <div className="table-thumb-wrap">
                             {p.imageUrl ? (
@@ -1530,6 +1649,11 @@ const Admin = () => {
                             <span className="table-name">{p.name}</span>
                             <div className="table-meta-tags">
                               <span className="table-id">ID: {p.id}</span>
+                              {p.isHidden && (
+                                <span className="table-hidden-tag" title="Hidden from store buyers">
+                                  <EyeOff size={10} /> Hidden from Buyers
+                                </span>
+                              )}
                               {Array.isArray(p.colors) && p.colors.length > 0 && (
                                 <span className="table-colors-pill" title={`${p.colors.map(c => c.name).join(', ')}`}>
                                   <Palette size={10} /> {p.colors.length} Colors
@@ -1550,6 +1674,29 @@ const Admin = () => {
                             </div>
                           )}
                         </td>
+                        <td className="table-visibility-cell" data-label="Visibility">
+                          <button
+                            type="button"
+                            className={`visibility-status-btn ${p.isHidden ? 'status-hidden' : 'status-visible'}`}
+                            onClick={() => handleToggleVisibility(p)}
+                            disabled={togglingVisibilityId === p.id}
+                            title={p.isHidden ? 'Currently hidden from buyers. Click to show in store.' : 'Currently visible to buyers. Click to hide from store.'}
+                          >
+                            {togglingVisibilityId === p.id ? (
+                              <span className="table-vis-spinner"></span>
+                            ) : p.isHidden ? (
+                              <>
+                                <EyeOff size={13} />
+                                <span>Hidden</span>
+                              </>
+                            ) : (
+                              <>
+                                <Eye size={13} />
+                                <span>Visible</span>
+                              </>
+                            )}
+                          </button>
+                        </td>
                         <td className="table-date-cell" data-label="Added On">
                           {formattedDate ? (
                             <div className="table-added-time" title={p.createdAt}>
@@ -1565,6 +1712,23 @@ const Admin = () => {
                         </td>
                         <td className="table-actions-cell" data-label="Actions">
                           <div className="table-actions-group">
+                            <button
+                              type="button"
+                              className={`action-vis-btn ${p.isHidden ? 'action-show' : 'action-hide'}`}
+                              onClick={() => handleToggleVisibility(p)}
+                              disabled={togglingVisibilityId === p.id}
+                              title={p.isHidden ? 'Show product to store buyers' : 'Hide product from store buyers'}
+                            >
+                              {p.isHidden ? (
+                                <>
+                                  <Eye size={13} /> Show
+                                </>
+                              ) : (
+                                <>
+                                  <EyeOff size={13} /> Hide
+                                </>
+                              )}
+                            </button>
                             <button
                               className="edit-btn"
                               onClick={() => handleEditClick(p)}

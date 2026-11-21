@@ -119,6 +119,11 @@ const Home = () => {
 
     return products
       .filter((product) => {
+        // Exclude products hidden by admin so buyers cannot see them
+        if (product.isHidden) {
+          return false;
+        }
+
         // 1. Text Search (name, category, description)
         const matchesQuery = !queryClean || (
           (product.name && product.name.toLowerCase().includes(queryClean)) ||
