@@ -16,6 +16,7 @@ import {
   Image as ImageIcon,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   ArrowLeft,
   X,
   Package,
@@ -82,6 +83,28 @@ const Admin = () => {
 
   const fileInputRef = useRef(null);
   const formRef = useRef(null);
+
+  // Confirmation Modal State (Delete, Edit, Update)
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    type: 'delete', // 'delete' | 'update' | 'cancel_edit' | 'switch_edit'
+    title: '',
+    message: '',
+    confirmText: 'Confirm',
+    confirmVariant: 'danger', // 'danger' | 'primary'
+    onConfirm: null
+  });
+
+  // Close confirmation modal on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && confirmModal.isOpen) {
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [confirmModal.isOpen]);
 
   // Check rate limit lockout countdown
   useEffect(() => {
@@ -348,7 +371,7 @@ const Admin = () => {
     ? (numActual - numOffer).toFixed(2)
     : 0;
 
-  const handleEdit = (product) => {
+  const applyEdit = (product) => {
     setEditingProductId(product.id);
     setName(product.name || '');
     setOfferPrice(product.price != null ? String(product.price) : '');
@@ -399,10 +422,36 @@ const Admin = () => {
     }
   };
 
-  const cancelEdit = () => {
-    setEditingProductId(null);
-    resetForm();
-    setFeedback(null);
+  const handleEditClick = (product) => {
+    if (editingProductId && editingProductId !== product.id) {
+      setConfirmModal({
+        isOpen: true,
+        type: 'switch_edit',
+        title: 'Switch Product?',
+        message: `You are currently editing another product. Do you want to switch to editing "${product.name}"?`,
+        confirmText: 'Yes, Switch',
+        confirmVariant: 'primary',
+        onConfirm: () => applyEdit(product)
+      });
+      return;
+    }
+    applyEdit(product);
+  };
+
+  const requestCancelEdit = () => {
+    setConfirmModal({
+      isOpen: true,
+      type: 'cancel_edit',
+      title: 'Discard Changes?',
+      message: 'Are you sure you want to cancel editing and discard unsaved changes?',
+      confirmText: 'Yes, Discard',
+      confirmVariant: 'danger',
+      onConfirm: () => {
+        setEditingProductId(null);
+        resetForm();
+        setFeedback(null);
+      }
+    });
   };
 
   const resetForm = () => {
@@ -423,7 +472,7 @@ const Admin = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     setFeedback(null);
 
@@ -442,6 +491,25 @@ const Admin = () => {
       return;
     }
 
+    // If EDITING existing product, show confirmation popup before saving
+    if (editingProductId) {
+      setConfirmModal({
+        isOpen: true,
+        type: 'update',
+        title: 'Save Product Changes?',
+        message: `Are you sure you want to update the details and pricing for "${name.trim()}" in Supabase?`,
+        confirmText: 'Yes, Update Product',
+        confirmVariant: 'primary',
+        onConfirm: () => executeSaveProduct()
+      });
+      return;
+    }
+
+    // Adding new product directly
+    executeSaveProduct();
+  };
+
+  const executeSaveProduct = async () => {
     setSubmitting(true);
 
     try {
@@ -510,18 +578,29 @@ const Admin = () => {
     }
   };
 
-  const handleDelete = async (id, prodName) => {
-    if (!window.confirm(`Are you sure you want to delete "${prodName}"?`)) {
-      return;
-    }
+  const requestDeleteProduct = (id, prodName) => {
+    setConfirmModal({
+      isOpen: true,
+      type: 'delete',
+      title: 'Delete Product?',
+      message: `Are you sure you want to delete "${prodName}"? This action cannot be undone and will permanently remove this item from the store database.`,
+      confirmText: 'Yes, Delete Product',
+      confirmVariant: 'danger',
+      onConfirm: () => executeDelete(id, prodName)
+    });
+  };
 
+  const executeDelete = async (id, prodName) => {
     try {
       await deleteProduct(id);
-      setProducts(products.filter(p => p.id !== id));
+      setProducts((prev) => prev.filter((p) => p.id !== id));
       setFeedback({
         type: 'success',
         message: `"${prodName}" deleted successfully.`
       });
+      if (editingProductId === id) {
+        resetForm();
+      }
     } catch (err) {
       console.error('Error deleting product:', err);
       setFeedback({
@@ -693,7 +772,7 @@ const Admin = () => {
               <button
                 type="button"
                 className="cancel-edit-btn"
-                onClick={cancelEdit}
+                onClick={requestCancelEdit}
                 title="Cancel editing and create new product"
               >
                 <X size={15} /> Cancel Edit
@@ -1141,14 +1220,14 @@ const Admin = () => {
                           <div className="table-actions-group">
                             <button
                               className="edit-btn"
-                              onClick={() => handleEdit(p)}
+                              onClick={() => handleEditClick(p)}
                               title={`Edit "${p.name}"`}
                             >
                               <Pencil size={14} /> Edit
                             </button>
                             <button
                               className="delete-btn"
-                              onClick={() => handleDelete(p.id, p.name)}
+                              onClick={() => requestDeleteProduct(p.id, p.name)}
                               title={`Delete "${p.name}"`}
                             >
                               <Trash2 size={15} />
@@ -1164,6 +1243,66 @@ const Admin = () => {
           )}
         </div>
       </div>
+
+      {/* Confirmation Popup Modal for Delete & Edit Actions */}
+      {confirmModal.isOpen && (
+        <div
+          className="admin-modal-overlay"
+          onClick={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+        >
+          <div
+            className="admin-modal-dialog"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <button
+              type="button"
+              className="admin-modal-close"
+              onClick={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+              aria-label="Close dialog"
+            >
+              <X size={18} />
+            </button>
+
+            <div className={`admin-modal-icon-wrap ${confirmModal.confirmVariant}`}>
+              {confirmModal.confirmVariant === 'danger' ? (
+                <Trash2 size={28} />
+              ) : (
+                <Pencil size={28} />
+              )}
+            </div>
+
+            <h3 className="admin-modal-title">{confirmModal.title}</h3>
+            <p className="admin-modal-message">{confirmModal.message}</p>
+
+            <div className="admin-modal-actions">
+              <button
+                type="button"
+                className="admin-modal-btn cancel"
+                onClick={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+                disabled={submitting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={`admin-modal-btn confirm ${confirmModal.confirmVariant}`}
+                onClick={async () => {
+                  const action = confirmModal.onConfirm;
+                  setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+                  if (action) await action();
+                }}
+                disabled={submitting}
+              >
+                {confirmModal.confirmVariant === 'danger' && <Trash2 size={16} />}
+                {confirmModal.confirmVariant === 'primary' && <CheckCircle2 size={16} />}
+                {confirmModal.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
