@@ -133,7 +133,6 @@ const ProductDetail = () => {
   const handleBuyNow = () => {
     const whatsappNumber = '9447210273';
     const productUrl = `${window.location.origin}/product/${product.id}`;
-    const coverImage = (images && images.length > 0 ? images[0] : product.imageUrl) || '';
 
     const messageLines = [
       "Hello! I'm interested in buying this product from your website:",
@@ -141,22 +140,18 @@ const ProductDetail = () => {
       `*Product:* ${product.name}`,
       `*Category:* ${product.category}`,
       "",
-      `*Product Website Link:* ${productUrl}`,
+      `*Product Link:* ${productUrl}`,
     ];
 
-    if (coverImage) {
-      messageLines.push(`*Cover Photo:* ${coverImage}`);
-      messageLines.push("");
-    }
-
     if (features && features.length > 0) {
+      messageLines.push("");
       messageLines.push("*Features:*");
       features.forEach((f) => {
         if (f) messageLines.push(`• ${f}`);
       });
-      messageLines.push("");
     }
 
+    messageLines.push("");
     messageLines.push("Is this item currently available?");
 
     const message = messageLines.join("\n");
