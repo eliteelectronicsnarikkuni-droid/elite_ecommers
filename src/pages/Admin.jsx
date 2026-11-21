@@ -78,6 +78,7 @@ const Admin = () => {
   const [imageItems, setImageItems] = useState([]); // Array of { id, url, file, previewUrl, compressionInfo }
   const [compressing, setCompressing] = useState(false);
   const [compressProgress, setCompressProgress] = useState('');
+  const [imageError, setImageError] = useState(false);
 
   const fileInputRef = useRef(null);
   const formRef = useRef(null);
@@ -287,6 +288,7 @@ const Admin = () => {
     }
 
     setImageItems((prev) => [...prev, ...newItems].slice(0, 5));
+    setImageError(false);
     setCompressing(false);
     setCompressProgress('');
     if (fileInputRef.current) {
@@ -380,6 +382,7 @@ const Admin = () => {
         compressionInfo: null
       }))
     );
+    setImageError(false);
     setCompressing(false);
     setCompressProgress('');
     if (fileInputRef.current) {
@@ -438,6 +441,7 @@ const Admin = () => {
     setDescription('');
     setFeatures(['', '']);
     setImageItems([]);
+    setImageError(false);
     setCompressing(false);
     setCompressProgress('');
     if (fileInputRef.current) {
@@ -450,17 +454,15 @@ const Admin = () => {
     setFeedback(null);
 
     if (!name.trim()) {
-      setFeedback({ type: 'error', message: 'Product name is required.' });
       return;
     }
 
     if (!offerPrice || isNaN(offerPrice) || Number(offerPrice) <= 0) {
-      setFeedback({ type: 'error', message: 'Offer Price (₹) is required and must be greater than 0.' });
       return;
     }
 
     if (imageItems.length === 0) {
-      setFeedback({ type: 'error', message: 'Product image is required. Please upload at least 1 photo.' });
+      setImageError(true);
       return;
     }
 
@@ -759,7 +761,9 @@ const Admin = () => {
 
           <form onSubmit={handleSubmit} className="admin-form">
             <div className="form-group">
-              <label>Product Name *</label>
+              <label>
+                Product Name <span className="required-star">*</span>
+              </label>
               <input
                 type="text"
                 placeholder="e.g. Sony WH-1000XM5 Wireless Headphones"
@@ -784,7 +788,9 @@ const Admin = () => {
               </div>
 
               <div className="form-group">
-                <label>Offer Price (₹) *</label>
+                <label>
+                  Offer Price (₹) <span className="required-star">*</span>
+                </label>
                 <input
                   type="number"
                   placeholder="e.g. 999"
@@ -891,9 +897,11 @@ const Admin = () => {
             <div className="form-group admin-images-section">
               <div className="images-header-row">
                 <div>
-                  <label>Product Images * (At least 1 photo required, up to 5)</label>
+                  <label>
+                    Product Images <span className="required-star">*</span>
+                  </label>
                   <span className="input-field-hint">
-                    Upload at least 1 image. Photo #1 will be the primary cover photo on the shop catalog.
+                    Upload up to 5 photos. Photo #1 is the primary cover image on the shop catalog.
                   </span>
                 </div>
                 <span className={`images-counter-pill ${imageItems.length === 5 ? 'full' : ''}`}>
@@ -920,10 +928,13 @@ const Admin = () => {
                     <span className="compressing-subtitle">{compressProgress || 'Optimizing without losing quality (HD WebP)'}</span>
                   </div>
                 ) : imageItems.length < 5 ? (
-                  <label htmlFor="product-image-upload" className="file-dropzone multi-dropzone">
+                  <label htmlFor="product-image-upload" className={`file-dropzone multi-dropzone ${imageError ? 'dropzone-error' : ''}`}>
                     <Upload size={32} className="upload-icon" />
                     <span className="dropzone-title">Click to upload photos ({5 - imageItems.length} slot{5 - imageItems.length > 1 ? 's' : ''} left)</span>
                     <span className="dropzone-subtitle">Choose up to 5 images • Auto-compressed to HD WebP to save storage space</span>
+                    {imageError && (
+                      <span className="dropzone-error-msg">* Please upload at least 1 image</span>
+                    )}
                   </label>
                 ) : (
                   <div className="max-images-notice">
