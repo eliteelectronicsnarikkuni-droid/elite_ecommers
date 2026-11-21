@@ -75,9 +75,7 @@ const Admin = () => {
   const [customCategory, setCustomCategory] = useState('');
   const [description, setDescription] = useState('');
   const [features, setFeatures] = useState(['', '']);
-  const [imageMode, setImageMode] = useState('upload'); // 'upload' | 'url'
   const [imageItems, setImageItems] = useState([]); // Array of { id, url, file, previewUrl, compressionInfo }
-  const [urlInput, setUrlInput] = useState('');
   const [compressing, setCompressing] = useState(false);
   const [compressProgress, setCompressProgress] = useState('');
 
@@ -296,29 +294,6 @@ const Admin = () => {
     }
   };
 
-  const handleAddUrlImage = (e) => {
-    if (e) e.preventDefault();
-    const trimmed = urlInput.trim();
-    if (!trimmed) return;
-
-    if (imageItems.length >= 5) {
-      setFeedback({ type: 'error', message: 'Maximum 5 images allowed per product.' });
-      return;
-    }
-
-    setImageItems((prev) => [
-      ...prev,
-      {
-        id: `img_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-        url: trimmed,
-        previewUrl: trimmed,
-        file: null,
-        compressionInfo: null
-      }
-    ]);
-    setUrlInput('');
-  };
-
   const removeImageItem = (index) => {
     setImageItems((prev) => prev.filter((_, i) => i !== index));
   };
@@ -405,7 +380,6 @@ const Admin = () => {
         compressionInfo: null
       }))
     );
-    setUrlInput('');
     setCompressing(false);
     setCompressProgress('');
     if (fileInputRef.current) {
@@ -464,7 +438,6 @@ const Admin = () => {
     setDescription('');
     setFeatures(['', '']);
     setImageItems([]);
-    setUrlInput('');
     setCompressing(false);
     setCompressProgress('');
     if (fileInputRef.current) {
@@ -533,9 +506,8 @@ const Admin = () => {
       }
 
       const finalImages = uploadedUrls.filter(Boolean).slice(0, 5);
-      const defaultPlaceholder = 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=800&q=80';
-      const primaryImageUrl = finalImages[0] || defaultPlaceholder;
-      const allImages = finalImages.length > 0 ? finalImages : [primaryImageUrl];
+      const primaryImageUrl = finalImages.length > 0 ? finalImages[0] : null;
+      const allImages = finalImages;
 
       const activeCategory = category === 'Other' ? customCategory.trim() || 'General' : category;
       const cleanFeatures = features.map(f => f.trim()).filter(Boolean);
@@ -914,9 +886,9 @@ const Admin = () => {
             <div className="form-group admin-images-section">
               <div className="images-header-row">
                 <div>
-                  <label>Product Images (Up to 5) *</label>
+                  <label>Product Images (Up to 5)</label>
                   <span className="input-field-hint">
-                    Add up to 5 photos. Photo #1 is the primary cover image seen on the shop catalog.
+                    Upload up to 5 photos. Photo #1 is the primary cover image seen on the shop catalog. (Optional)
                   </span>
                 </div>
                 <span className={`images-counter-pill ${imageItems.length === 5 ? 'full' : ''}`}>
@@ -924,85 +896,37 @@ const Admin = () => {
                 </span>
               </div>
 
-              <div className="image-mode-tabs">
-                <button
-                  type="button"
-                  className={`tab-btn ${imageMode === 'upload' ? 'active' : ''}`}
-                  onClick={() => setImageMode('upload')}
-                >
-                  <Upload size={16} /> Upload Photos
-                </button>
-                <button
-                  type="button"
-                  className={`tab-btn ${imageMode === 'url' ? 'active' : ''}`}
-                  onClick={() => setImageMode('url')}
-                >
-                  <ImageIcon size={16} /> Add by Image URL
-                </button>
-              </div>
+              <div className="upload-box-wrapper">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  ref={fileInputRef}
+                  onChange={handleImageFilesChange}
+                  style={{ display: 'none' }}
+                  id="product-image-upload"
+                  disabled={imageItems.length >= 5 || compressing}
+                />
 
-              {imageMode === 'upload' ? (
-                <div className="upload-box-wrapper">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    ref={fileInputRef}
-                    onChange={handleImageFilesChange}
-                    style={{ display: 'none' }}
-                    id="product-image-upload"
-                    disabled={imageItems.length >= 5 || compressing}
-                  />
-
-                  {compressing ? (
-                    <div className="compressing-box">
-                      <div className="spinner"></div>
-                      <span className="compressing-title">Compressing Photos...</span>
-                      <span className="compressing-subtitle">{compressProgress || 'Optimizing without losing quality (HD WebP)'}</span>
-                    </div>
-                  ) : imageItems.length < 5 ? (
-                    <label htmlFor="product-image-upload" className="file-dropzone multi-dropzone">
-                      <Upload size={32} className="upload-icon" />
-                      <span className="dropzone-title">Click to upload photos ({5 - imageItems.length} slot{5 - imageItems.length > 1 ? 's' : ''} left)</span>
-                      <span className="dropzone-subtitle">Choose up to 5 images • Auto-compressed to HD WebP to save storage space</span>
-                    </label>
-                  ) : (
-                    <div className="max-images-notice">
-                      <CheckCircle2 size={18} className="text-green" />
-                      <span>Maximum 5 photos added! You can reorder, change cover, or delete items below.</span>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="url-input-wrapper">
-                  <div className="url-input-row">
-                    <input
-                      type="url"
-                      placeholder="https://images.unsplash.com/photo-..."
-                      value={urlInput ?? ''}
-                      onChange={(e) => setUrlInput(e.target.value)}
-                      disabled={imageItems.length >= 5}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleAddUrlImage();
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="add-url-img-btn"
-                      onClick={handleAddUrlImage}
-                      disabled={!urlInput.trim() || imageItems.length >= 5}
-                    >
-                      <Plus size={16} /> Add Photo
-                    </button>
+                {compressing ? (
+                  <div className="compressing-box">
+                    <div className="spinner"></div>
+                    <span className="compressing-title">Compressing Photos...</span>
+                    <span className="compressing-subtitle">{compressProgress || 'Optimizing without losing quality (HD WebP)'}</span>
                   </div>
-                  {imageItems.length >= 5 && (
-                    <span className="input-field-hint warning">Maximum 5 photos reached. Remove one below to add another.</span>
-                  )}
-                </div>
-              )}
+                ) : imageItems.length < 5 ? (
+                  <label htmlFor="product-image-upload" className="file-dropzone multi-dropzone">
+                    <Upload size={32} className="upload-icon" />
+                    <span className="dropzone-title">Click to upload photos ({5 - imageItems.length} slot{5 - imageItems.length > 1 ? 's' : ''} left)</span>
+                    <span className="dropzone-subtitle">Choose up to 5 images • Auto-compressed to HD WebP to save storage space</span>
+                  </label>
+                ) : (
+                  <div className="max-images-notice">
+                    <CheckCircle2 size={18} className="text-green" />
+                    <span>Maximum 5 photos added! You can reorder, change cover, or delete items below.</span>
+                  </div>
+                )}
+              </div>
 
               {/* GALLERY THUMBNAIL MANAGEMENT GRID (UP TO 5 IMAGES) */}
               {imageItems.length > 0 && (
@@ -1175,11 +1099,17 @@ const Admin = () => {
                       <tr key={p.id} className={editingProductId === p.id ? 'row-editing' : ''}>
                         <td className="product-cell" data-label="Item">
                           <div className="table-thumb-wrap">
-                            <img
-                              src={p.imageUrl || 'https://via.placeholder.com/60'}
-                              alt={p.name}
-                              className="table-thumb"
-                            />
+                            {p.imageUrl ? (
+                              <img
+                                src={p.imageUrl}
+                                alt={p.name}
+                                className="table-thumb"
+                              />
+                            ) : (
+                              <div className="table-thumb-fallback" title="No photo uploaded">
+                                <Package size={20} color="#94a3b8" />
+                              </div>
+                            )}
                             {Array.isArray(p.images) && p.images.length > 1 && (
                               <span className="table-photos-count" title={`${p.images.length} photos`}>
                                 <Camera size={10} /> {p.images.length}

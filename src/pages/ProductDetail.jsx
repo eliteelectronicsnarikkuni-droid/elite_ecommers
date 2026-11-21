@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getProductById } from '../services/productService';
-import { ArrowLeft, MessageCircle, Tag, ChevronLeft, ChevronRight, Camera, Zap } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Tag, ChevronLeft, ChevronRight, Camera, Zap, Package } from 'lucide-react';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -96,9 +96,10 @@ const ProductDetail = () => {
   // Multi-image gallery list (up to 5 images)
   const images = Array.isArray(product.images) && product.images.length > 0
     ? product.images
-    : [product.imageUrl || product.image_url || 'https://via.placeholder.com/800x600?text=No+Image'];
+    : (product.imageUrl || product.image_url ? [product.imageUrl || product.image_url] : []);
 
-  const currentImageUrl = images[activeImageIndex] || images[0];
+  const hasImages = images.length > 0;
+  const currentImageUrl = hasImages ? (images[activeImageIndex] || images[0]) : null;
 
   const handlePrevImage = () => {
     setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
@@ -170,13 +171,21 @@ const ProductDetail = () => {
         {/* Flipkart / Amazon Style Gallery */}
         <div className="detail-image-section">
           <div className="detail-main-image-wrapper">
-            <img 
-              src={currentImageUrl} 
-              alt={`${product.name} - View ${activeImageIndex + 1}`} 
-              className="detail-image" 
-              fetchPriority="high"
-              decoding="async"
-            />
+            {hasImages && currentImageUrl ? (
+              <img 
+                src={currentImageUrl} 
+                alt={`${product.name} - View ${activeImageIndex + 1}`} 
+                className="detail-image" 
+                fetchPriority="high"
+                decoding="async"
+              />
+            ) : (
+              <div className="detail-no-image-box">
+                <Package size={56} className="no-image-icon" />
+                <span className="no-image-title">No Photos Added</span>
+                <span className="no-image-subtitle">This item was listed without images</span>
+              </div>
+            )}
 
             {images.length > 1 && (
               <>
@@ -286,11 +295,17 @@ const ProductDetail = () => {
       <div className="fixed-sticky-buy-bar">
         <div className="sticky-buy-bar-inner">
           <div className="sticky-product-summary">
-            <img 
-              src={currentImageUrl} 
-              alt={product.name} 
-              className="sticky-product-thumb" 
-            />
+            {currentImageUrl ? (
+              <img 
+                src={currentImageUrl} 
+                alt={product.name} 
+                className="sticky-product-thumb" 
+              />
+            ) : (
+              <div className="sticky-product-thumb-fallback">
+                <Package size={20} color="#94a3b8" />
+              </div>
+            )}
             <div className="sticky-details">
               <span className="sticky-product-name">{product.name}</span>
               <div className="sticky-price-row">

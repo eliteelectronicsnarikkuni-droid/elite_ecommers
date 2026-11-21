@@ -1,13 +1,13 @@
 import { Link } from 'react-router-dom';
-import { Camera } from 'lucide-react';
+import { Camera, Package } from 'lucide-react';
 
 const ProductCard = ({ product }) => {
   const imageUrl = (Array.isArray(product.images) && product.images[0]) || 
     product.imageUrl || 
     product.image_url || 
-    'https://via.placeholder.com/600x400?text=No+Image';
+    null;
   
-  const imagesCount = Array.isArray(product.images) ? product.images.length : 1;
+  const imagesCount = Array.isArray(product.images) ? product.images.length : (imageUrl ? 1 : 0);
   const offerPrice = Number(product.price || 0);
   const originalPrice = product.originalPrice ? Number(product.originalPrice) : null;
   const hasDiscount = originalPrice && originalPrice > offerPrice;
@@ -35,13 +35,20 @@ const ProductCard = ({ product }) => {
       }}
     >
       <div className="product-image-container">
-        <img 
-          src={imageUrl} 
-          alt={product.name} 
-          className="product-image" 
-          loading="lazy" 
-          decoding="async" 
-        />
+        {imageUrl ? (
+          <img 
+            src={imageUrl} 
+            alt={product.name} 
+            className="product-image" 
+            loading="lazy" 
+            decoding="async" 
+          />
+        ) : (
+          <div className="product-no-image-placeholder">
+            <Package size={38} className="no-image-icon" />
+            <span className="no-image-text">No Image</span>
+          </div>
+        )}
         <div className="product-category">{product.category}</div>
         {hasDiscount && (
           <div className="product-discount-badge">

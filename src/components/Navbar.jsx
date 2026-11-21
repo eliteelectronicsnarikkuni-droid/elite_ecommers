@@ -9,7 +9,8 @@ import {
   TrendingUp, 
   ChevronRight, 
   ArrowRight, 
-  ArrowUpRight 
+  ArrowUpRight,
+  Package 
 } from 'lucide-react';
 
 const POPULAR_SEARCHES = [
@@ -304,12 +305,18 @@ const Navbar = () => {
                             className="suggestion-item product-item"
                             onClick={() => handleSelectProduct(prod.id)}
                           >
-                            <img
-                              src={prod.imageUrl || 'https://via.placeholder.com/40'}
-                              alt={prod.name}
-                              className="suggestion-thumb"
-                              loading="lazy"
-                            />
+                            {prod.imageUrl ? (
+                              <img
+                                src={prod.imageUrl}
+                                alt={prod.name}
+                                className="suggestion-thumb"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="suggestion-thumb-fallback">
+                                <Package size={16} color="#94a3b8" />
+                              </div>
+                            )}
                             <div className="suggestion-info">
                               <span className="suggestion-title">
                                 {highlightMatch(prod.name, searchQuery.trim())}
