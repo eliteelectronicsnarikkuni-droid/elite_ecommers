@@ -60,6 +60,16 @@ const ProductCard = ({ product }) => {
             <Camera size={12} /> {imagesCount} Photos
           </div>
         )}
+        {Array.isArray(product.colors) && product.colors.length > 0 && (
+          <div className="product-card-colors-pill" title={`${product.colors.length} color options`}>
+            <span className="colors-dots-wrap">
+              {product.colors.slice(0, 3).map((c, i) => (
+                <span key={i} className="card-color-dot" style={{ backgroundColor: c.colorCode || '#475569' }} />
+              ))}
+            </span>
+            <span>{product.colors.length} Colors</span>
+          </div>
+        )}
       </div>
       <div className="product-info">
         <h3 className="product-name">{product.name}</h3>

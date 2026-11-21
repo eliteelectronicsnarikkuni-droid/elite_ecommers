@@ -4157,3 +4157,385 @@
   height: 40px;
   border-radius: 6px;
 }
+
+/* ========================================================
+   Product Detail Color Options Selector
+   ======================================================== */
+.product-color-selector-section {
+  margin-bottom: 1.25rem;
+  padding: 0.9rem 1.1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.color-selector-header {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.9rem;
+  margin-bottom: 0.65rem;
+}
+
+.color-label-title {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.selected-color-name {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.color-options-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.color-option-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem 0.35rem 0.45rem;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+  transition: all 0.18s ease;
+}
+
+.color-option-btn:hover {
+  border-color: #0284c7;
+  color: #0284c7;
+  transform: translateY(-1px);
+}
+
+.color-option-btn.active {
+  border-color: #0284c7;
+  background: #f0f9ff;
+  color: #0369a1;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+}
+
+.color-option-thumb {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #e2e8f0;
+}
+
+.color-option-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.color-option-name {
+  white-space: nowrap;
+}
+
+.sticky-color-pill {
+  display: inline-block;
+  font-size: 0.75rem;
+  color: #0284c7;
+  font-weight: 700;
+  margin-top: 0.1rem;
+}
+
+/* Product Card Color Pill */
+.product-card-colors-pill {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(4px);
+  color: #ffffff;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  z-index: 2;
+}
+
+.colors-dots-wrap {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.card-color-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  display: inline-block;
+}
+
+/* ========================================================
+   Admin Color Variants Management UI
+   ======================================================== */
+.color-toggle-box {
+  margin-bottom: 1.25rem;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  transition: all 0.2s ease;
+}
+
+.color-toggle-box:hover {
+  border-color: #94a3b8;
+  background: #f1f5f9;
+}
+
+.color-toggle-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+  margin: 0;
+}
+
+.color-toggle-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  cursor: pointer;
+  accent-color: #0284c7;
+}
+
+.color-toggle-desc {
+  display: flex;
+  flex-direction: column;
+}
+
+.color-toggle-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.color-toggle-help {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: 0.2rem;
+  line-height: 1.35;
+}
+
+.admin-color-variants-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.color-variants-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.section-subtitle-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+  display: block;
+}
+
+.add-color-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.85rem;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  border-radius: 8px;
+  font-size: 0.825rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.add-color-btn:hover {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.admin-color-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.15rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.color-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.color-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.color-index-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 0.25rem 0.55rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.color-inputs-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 220px;
+}
+
+.color-name-input {
+  flex: 1;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.color-picker-wrapper {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.color-hex-picker {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  width: 60px;
+  height: 60px;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.color-preview-circle {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.remove-color-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.remove-color-btn:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.color-images-area {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 0.9rem;
+}
+
+.color-images-area-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.color-images-area-title {
+  font-size: 0.85rem;
+  color: #1e293b;
+}
+
+.color-images-area-hint {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.file-dropzone.color-dropzone {
+  padding: 0.85rem 1rem;
+  background: #ffffff;
+  border: 1.5px dashed #94a3b8;
+  margin-bottom: 0.75rem;
+}
+
+.file-dropzone.color-dropzone:hover {
+  border-color: #0284c7;
+  background: #f0f9ff;
+}
+
+.color-gallery-slots {
+  margin-top: 0.5rem;
+}
+
+.table-meta-tags {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.15rem;
+  flex-wrap: wrap;
+}
+
+.table-colors-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #0369a1;
+  background: #e0f2fe;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+}

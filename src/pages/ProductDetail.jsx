@@ -93,11 +93,23 @@ const ProductDetail = () => {
 
   const features = Array.isArray(product.features) ? product.features : [];
   
-  // Multi-image gallery list (up to 5 images)
-  const images = Array.isArray(product.images) && product.images.length > 0
+  // Color Options
+  const colors = Array.isArray(product.colors) ? product.colors : [];
+  const hasColors = colors.length > 0;
+  const [selectedColorIndex, setSelectedColorIndex] = useState(0);
+
+  // Active color and its specific image gallery
+  const activeColor = hasColors ? colors[selectedColorIndex] || colors[0] : null;
+  const colorImages = activeColor && Array.isArray(activeColor.images) && activeColor.images.length > 0
+    ? activeColor.images
+    : null;
+
+  // Fallback to product images if color has no images or product has no colors
+  const fallbackImages = Array.isArray(product.images) && product.images.length > 0
     ? product.images
     : (product.imageUrl || product.image_url ? [product.imageUrl || product.image_url] : []);
 
+  const images = colorImages || fallbackImages;
   const hasImages = images.length > 0;
   const currentImageUrl = hasImages ? (images[activeImageIndex] || images[0]) : null;
 
@@ -139,10 +151,15 @@ const ProductDetail = () => {
       "Hello! I'm interested in buying this product from your website:",
       "",
       `*Product:* ${product.name}`,
-      `*Category:* ${product.category}`,
-      "",
-      `*Product Link:* ${productUrl}`,
     ];
+
+    if (hasColors && activeColor?.name) {
+      messageLines.push(`*Selected Color:* ${activeColor.name}`);
+    }
+
+    messageLines.push(`*Category:* ${product.category}`);
+    messageLines.push("");
+    messageLines.push(`*Product Link:* ${productUrl}`);
 
     if (features && features.length > 0) {
       messageLines.push("");
@@ -242,6 +259,46 @@ const ProductDetail = () => {
 
           <h1 className="detail-title">{product.name}</h1>
 
+          {/* Color Options Selector - Only shown if product has color options */}
+          {hasColors && (
+            <div className="product-color-selector-section">
+              <div className="color-selector-header">
+                <span className="color-label-title">Color:</span>
+                <strong className="selected-color-name">{activeColor?.name}</strong>
+              </div>
+
+              <div className="color-options-list">
+                {colors.map((c, idx) => {
+                  const isSelected = selectedColorIndex === idx;
+                  const firstImg = Array.isArray(c.images) && c.images.length > 0 ? c.images[0] : null;
+
+                  return (
+                    <button
+                      key={c.id || idx}
+                      type="button"
+                      className={`color-option-btn ${isSelected ? 'active' : ''}`}
+                      onClick={() => {
+                        setSelectedColorIndex(idx);
+                        setActiveImageIndex(0);
+                      }}
+                      title={`Select ${c.name}`}
+                    >
+                      {firstImg ? (
+                        <img src={firstImg} alt={c.name} className="color-option-thumb" />
+                      ) : (
+                        <span 
+                          className="color-option-swatch" 
+                          style={{ backgroundColor: c.colorCode || '#000000' }} 
+                        />
+                      )}
+                      <span className="color-option-name">{c.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Pricing area with Actual Price, Offer Price & Calculated Percentage */}
           <div className="detail-pricing-card">
             <div className="detail-price-breakdown">
@@ -335,6 +392,9 @@ const ProductDetail = () => {
             )}
             <div className="sticky-details">
               <span className="sticky-product-name">{product.name}</span>
+              {hasColors && activeColor?.name && (
+                <span className="sticky-color-pill">Color: {activeColor.name}</span>
+              )}
               <div className="sticky-price-row">
                 <span className="sticky-offer-price">₹{offerPriceFormatted}</span>
                 {hasDiscount && (

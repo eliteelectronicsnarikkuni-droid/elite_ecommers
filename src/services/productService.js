@@ -17,9 +17,10 @@ const normalizeProduct = (row) => {
     }
   }
 
-  // Extract __mrp__: and __images__: metadata if stored in features
+  // Extract __mrp__:, __images__:, and __colors__: metadata if stored in features
   const cleanFeatures = [];
   let imagesFromFeatures = [];
+  let colorsFromFeatures = [];
   for (const f of rawFeatures) {
     if (typeof f === 'string' && f.startsWith('__mrp__:')) {
       const parsed = Number(f.replace('__mrp__:', '').trim());
@@ -34,6 +35,15 @@ const normalizeProduct = (row) => {
         }
       } catch (e) {
         console.warn('Failed parsing __images__ from features:', e);
+      }
+    } else if (typeof f === 'string' && f.startsWith('__colors__:')) {
+      try {
+        const parsed = JSON.parse(f.replace('__colors__:', ''));
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          colorsFromFeatures = parsed;
+        }
+      } catch (e) {
+        console.warn('Failed parsing __colors__ from features:', e);
       }
     } else {
       cleanFeatures.push(f);
@@ -64,6 +74,27 @@ const normalizeProduct = (row) => {
       }
     } else {
       imagesList = [row.image_url];
+    }
+  }
+
+  // Extract colors
+  let productColors = [];
+  if (Array.isArray(row.colors) && row.colors.length > 0) {
+    productColors = row.colors;
+  } else if (typeof row.colors === 'string') {
+    try {
+      const parsed = JSON.parse(row.colors);
+      if (Array.isArray(parsed)) productColors = parsed;
+    } catch {}
+  } else if (colorsFromFeatures.length > 0) {
+    productColors = colorsFromFeatures;
+  }
+
+  // If imagesList is empty but product has colors, populate imagesList with the first color's images
+  if (imagesList.length === 0 && productColors.length > 0) {
+    const firstColorImages = productColors[0]?.images || [];
+    if (Array.isArray(firstColorImages) && firstColorImages.length > 0) {
+      imagesList = [...firstColorImages];
     }
   }
 
@@ -105,6 +136,7 @@ const normalizeProduct = (row) => {
     category: row.category || 'General',
     imageUrl: primaryImageUrl,
     images: imagesList,
+    colors: productColors,
     features: cleanFeatures,
     createdAt: row.created_at || row.createdAt || null
   };
@@ -366,19 +398,30 @@ export const createProduct = async (productData) => {
   const offerPrice = Number(productData.price || productData.offerPrice) || 0;
   const originalPrice = productData.originalPrice ? Number(productData.originalPrice) : null;
 
-  // Process up to 5 images for gallery
-  const imagesList = Array.isArray(productData.images) && productData.images.length > 0
+  // Process colors and up to 5 images for gallery
+  const colorsList = Array.isArray(productData.colors) ? productData.colors : [];
+  let imagesList = Array.isArray(productData.images) && productData.images.length > 0
     ? productData.images.filter(Boolean).slice(0, 5)
     : (productData.imageUrl ? [productData.imageUrl] : []);
+
+  if (imagesList.length === 0 && colorsList.length > 0) {
+    const firstColorImgs = colorsList[0]?.images || [];
+    if (firstColorImgs.length > 0) {
+      imagesList = firstColorImgs.filter(Boolean).slice(0, 5);
+    }
+  }
   const primaryImage = imagesList[0] || productData.imageUrl || '';
 
-  // Embed __mrp__: and __images__: metadata into features list so data is permanently saved
+  // Embed __mrp__:, __images__:, and __colors__: metadata into features list so data is permanently saved
   const featuresList = [...(productData.features || [])];
   if (originalPrice && !isNaN(originalPrice) && originalPrice > 0) {
     featuresList.push(`__mrp__:${originalPrice}`);
   }
   if (imagesList.length > 0) {
     featuresList.push(`__images__:${JSON.stringify(imagesList)}`);
+  }
+  if (colorsList.length > 0) {
+    featuresList.push(`__colors__:${JSON.stringify(colorsList)}`);
   }
 
   const newProduct = {
@@ -430,19 +473,30 @@ export const updateProduct = async (id, productData) => {
   const offerPrice = Number(productData.price || productData.offerPrice) || 0;
   const originalPrice = productData.originalPrice ? Number(productData.originalPrice) : null;
 
-  // Process up to 5 images for gallery
-  const imagesList = Array.isArray(productData.images) && productData.images.length > 0
+  // Process colors and up to 5 images for gallery
+  const colorsList = Array.isArray(productData.colors) ? productData.colors : [];
+  let imagesList = Array.isArray(productData.images) && productData.images.length > 0
     ? productData.images.filter(Boolean).slice(0, 5)
     : (productData.imageUrl ? [productData.imageUrl] : []);
+
+  if (imagesList.length === 0 && colorsList.length > 0) {
+    const firstColorImgs = colorsList[0]?.images || [];
+    if (firstColorImgs.length > 0) {
+      imagesList = firstColorImgs.filter(Boolean).slice(0, 5);
+    }
+  }
   const primaryImage = imagesList[0] || productData.imageUrl || '';
 
-  // Embed __mrp__: and __images__: metadata into features list so original data is permanently saved
+  // Embed __mrp__:, __images__:, and __colors__: metadata into features list so original data is permanently saved
   const featuresList = [...(productData.features || [])];
   if (originalPrice && !isNaN(originalPrice) && originalPrice > 0) {
     featuresList.push(`__mrp__:${originalPrice}`);
   }
   if (imagesList.length > 0) {
     featuresList.push(`__images__:${JSON.stringify(imagesList)}`);
+  }
+  if (colorsList.length > 0) {
+    featuresList.push(`__colors__:${JSON.stringify(colorsList)}`);
   }
 
   const updatedProduct = {

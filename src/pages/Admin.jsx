@@ -36,7 +36,8 @@ import {
   Camera,
   Eye,
   EyeOff,
-  KeyRound
+  KeyRound,
+  Palette
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -79,6 +80,8 @@ const Admin = () => {
   const [compressing, setCompressing] = useState(false);
   const [compressProgress, setCompressProgress] = useState('');
   const [imageError, setImageError] = useState(false);
+  const [hasColorVariants, setHasColorVariants] = useState(false);
+  const [colorVariants, setColorVariants] = useState([]); // Array of { id, name, colorCode, imageItems }
 
   const fileInputRef = useRef(null);
   const formRef = useRef(null);
@@ -321,6 +324,145 @@ const Admin = () => {
     });
   };
 
+  const handleToggleColorVariants = (enabled) => {
+    setHasColorVariants(enabled);
+    setImageError(false);
+    if (enabled && colorVariants.length === 0) {
+      setColorVariants([
+        {
+          id: `color_${Date.now()}_1`,
+          name: 'Black',
+          colorCode: '#111827',
+          imageItems: imageItems.length > 0 ? [...imageItems] : []
+        }
+      ]);
+    }
+  };
+
+  const addColorVariant = () => {
+    setColorVariants((prev) => [
+      ...prev,
+      {
+        id: `color_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        name: '',
+        colorCode: '#2563eb',
+        imageItems: []
+      }
+    ]);
+  };
+
+  const removeColorVariant = (index) => {
+    setColorVariants((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateColorField = (index, field, value) => {
+    setColorVariants((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: value };
+      return copy;
+    });
+  };
+
+  const handleColorImagesChange = async (colorIndex, e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const currentImages = colorVariants[colorIndex]?.imageItems || [];
+    const availableSlots = 5 - currentImages.length;
+    if (availableSlots <= 0) {
+      setFeedback({
+        type: 'error',
+        message: 'Maximum 5 images allowed per color variant.'
+      });
+      return;
+    }
+
+    const filesToProcess = files.slice(0, availableSlots);
+    setCompressing(true);
+    setCompressProgress(`Optimizing ${filesToProcess.length} photo(s)...`);
+
+    const newItems = [];
+    for (let i = 0; i < filesToProcess.length; i++) {
+      const file = filesToProcess[i];
+      try {
+        const { compressedFile, originalSize, compressedSize, compressionRatio } =
+          await compressImage(file, { maxWidth: 1200, maxHeight: 1200, quality: 0.83 });
+        newItems.push({
+          id: `img_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          file: compressedFile,
+          previewUrl: URL.createObjectURL(compressedFile),
+          compressionInfo: { originalSize, compressedSize, compressionRatio }
+        });
+      } catch {
+        newItems.push({
+          id: `img_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          file: file,
+          previewUrl: URL.createObjectURL(file),
+          compressionInfo: null
+        });
+      }
+    }
+
+    setColorVariants((prev) => {
+      const copy = [...prev];
+      const target = copy[colorIndex];
+      copy[colorIndex] = {
+        ...target,
+        imageItems: [...(target.imageItems || []), ...newItems].slice(0, 5)
+      };
+      return copy;
+    });
+
+    setCompressing(false);
+    setCompressProgress('');
+    e.target.value = '';
+  };
+
+  const removeColorImageItem = (colorIndex, imageIndex) => {
+    setColorVariants((prev) => {
+      const copy = [...prev];
+      const target = copy[colorIndex];
+      copy[colorIndex] = {
+        ...target,
+        imageItems: target.imageItems.filter((_, i) => i !== imageIndex)
+      };
+      return copy;
+    });
+  };
+
+  const makeColorCoverImage = (colorIndex, imageIndex) => {
+    if (imageIndex === 0) return;
+    setColorVariants((prev) => {
+      const copy = [...prev];
+      const target = copy[colorIndex];
+      const imgCopy = [...target.imageItems];
+      const [chosen] = imgCopy.splice(imageIndex, 1);
+      copy[colorIndex] = {
+        ...target,
+        imageItems: [chosen, ...imgCopy]
+      };
+      return copy;
+    });
+  };
+
+  const moveColorImage = (colorIndex, imageIndex, direction) => {
+    setColorVariants((prev) => {
+      const copy = [...prev];
+      const target = copy[colorIndex];
+      const imgCopy = [...target.imageItems];
+      const newIdx = imageIndex + direction;
+      if (newIdx < 0 || newIdx >= imgCopy.length) return prev;
+      const temp = imgCopy[imageIndex];
+      imgCopy[imageIndex] = imgCopy[newIdx];
+      imgCopy[newIdx] = temp;
+      copy[colorIndex] = {
+        ...target,
+        imageItems: imgCopy
+      };
+      return copy;
+    });
+  };
+
   const handleFeatureChange = (index, value) => {
     const updated = [...features];
     updated[index] = value;
@@ -369,19 +511,42 @@ const Admin = () => {
       : ['', ''];
     setFeatures(prodFeatures);
 
-    const prodImages = Array.isArray(product.images) && product.images.length > 0
-      ? product.images
-      : (product.imageUrl ? [product.imageUrl] : []);
+    if (Array.isArray(product.colors) && product.colors.length > 0) {
+      setHasColorVariants(true);
+      setColorVariants(
+        product.colors.map((c, cIdx) => ({
+          id: `edit_cv_${cIdx}_${Date.now()}`,
+          name: c.name || `Color ${cIdx + 1}`,
+          colorCode: c.colorCode || '#000000',
+          imageItems: Array.isArray(c.images)
+            ? c.images.slice(0, 5).map((imgUrl, i) => ({
+                id: `edit_cv_img_${cIdx}_${i}_${Date.now()}`,
+                url: imgUrl,
+                previewUrl: imgUrl,
+                file: null,
+                compressionInfo: null
+              }))
+            : []
+        }))
+      );
+      setImageItems([]);
+    } else {
+      setHasColorVariants(false);
+      setColorVariants([]);
+      const prodImages = Array.isArray(product.images) && product.images.length > 0
+        ? product.images
+        : (product.imageUrl ? [product.imageUrl] : []);
 
-    setImageItems(
-      prodImages.slice(0, 5).map((imgUrl, i) => ({
-        id: `edit_${i}_${Date.now()}`,
-        url: imgUrl,
-        previewUrl: imgUrl,
-        file: null,
-        compressionInfo: null
-      }))
-    );
+      setImageItems(
+        prodImages.slice(0, 5).map((imgUrl, i) => ({
+          id: `edit_${i}_${Date.now()}`,
+          url: imgUrl,
+          previewUrl: imgUrl,
+          file: null,
+          compressionInfo: null
+        }))
+      );
+    }
     setImageError(false);
     setCompressing(false);
     setCompressProgress('');
@@ -440,6 +605,8 @@ const Admin = () => {
     setCustomCategory('');
     setDescription('');
     setFeatures(['', '']);
+    setHasColorVariants(false);
+    setColorVariants([]);
     setImageItems([]);
     setImageError(false);
     setCompressing(false);
@@ -461,9 +628,26 @@ const Admin = () => {
       return;
     }
 
-    if (imageItems.length === 0) {
-      setImageError(true);
-      return;
+    if (hasColorVariants) {
+      if (colorVariants.length === 0) {
+        setFeedback({ type: 'error', message: 'Please add at least 1 color option or uncheck color options.' });
+        return;
+      }
+      const missingName = colorVariants.find(c => !c.name.trim());
+      if (missingName) {
+        setFeedback({ type: 'error', message: 'Please provide a name for all color options.' });
+        return;
+      }
+      const missingImages = colorVariants.find(c => c.imageItems.length === 0);
+      if (missingImages) {
+        setFeedback({ type: 'error', message: `Please upload at least 1 photo for color "${missingImages.name}".` });
+        return;
+      }
+    } else {
+      if (imageItems.length === 0) {
+        setImageError(true);
+        return;
+      }
     }
 
     if (actualPrice && (isNaN(actualPrice) || Number(actualPrice) < 0)) {
@@ -493,28 +677,62 @@ const Admin = () => {
     setSubmitting(true);
 
     try {
-      const uploadedUrls = [];
+      let finalColors = [];
+      let finalImages = [];
+      let primaryImageUrl = null;
 
-      // Upload each file in imageItems to Supabase Storage
-      for (let i = 0; i < imageItems.length; i++) {
-        const item = imageItems[i];
-        if (item.file) {
-          setFeedback({
-            type: 'info',
-            message: `Uploading image ${i + 1} of ${imageItems.length} to Supabase Storage...`
+      if (hasColorVariants && colorVariants.length > 0) {
+        for (let cIdx = 0; cIdx < colorVariants.length; cIdx++) {
+          const cv = colorVariants[cIdx];
+          const colorUrls = [];
+
+          for (let i = 0; i < cv.imageItems.length; i++) {
+            const item = cv.imageItems[i];
+            if (item.file) {
+              setFeedback({
+                type: 'info',
+                message: `Uploading photo ${i + 1} of ${cv.imageItems.length} for ${cv.name}...`
+              });
+              const upUrl = await uploadProductImage(item.file);
+              colorUrls.push(upUrl);
+            } else if (item.url) {
+              colorUrls.push(item.url);
+            } else if (item.previewUrl && !item.previewUrl.startsWith('blob:')) {
+              colorUrls.push(item.previewUrl);
+            }
+          }
+
+          finalColors.push({
+            name: cv.name.trim(),
+            colorCode: cv.colorCode || '#000000',
+            images: colorUrls.filter(Boolean).slice(0, 5)
           });
-          const uploadedUrl = await uploadProductImage(item.file);
-          uploadedUrls.push(uploadedUrl);
-        } else if (item.url) {
-          uploadedUrls.push(item.url);
-        } else if (item.previewUrl && !item.previewUrl.startsWith('blob:')) {
-          uploadedUrls.push(item.previewUrl);
         }
-      }
 
-      const finalImages = uploadedUrls.filter(Boolean).slice(0, 5);
-      const primaryImageUrl = finalImages.length > 0 ? finalImages[0] : null;
-      const allImages = finalImages;
+        if (finalColors.length > 0 && finalColors[0].images.length > 0) {
+          finalImages = finalColors[0].images;
+          primaryImageUrl = finalColors[0].images[0];
+        }
+      } else {
+        const uploadedUrls = [];
+        for (let i = 0; i < imageItems.length; i++) {
+          const item = imageItems[i];
+          if (item.file) {
+            setFeedback({
+              type: 'info',
+              message: `Uploading image ${i + 1} of ${imageItems.length} to Supabase Storage...`
+            });
+            const uploadedUrl = await uploadProductImage(item.file);
+            uploadedUrls.push(uploadedUrl);
+          } else if (item.url) {
+            uploadedUrls.push(item.url);
+          } else if (item.previewUrl && !item.previewUrl.startsWith('blob:')) {
+            uploadedUrls.push(item.previewUrl);
+          }
+        }
+        finalImages = uploadedUrls.filter(Boolean).slice(0, 5);
+        primaryImageUrl = finalImages.length > 0 ? finalImages[0] : null;
+      }
 
       const activeCategory = category === 'Other' ? customCategory.trim() || 'General' : category;
       const cleanFeatures = features.map(f => f.trim()).filter(Boolean);
@@ -526,7 +744,8 @@ const Admin = () => {
         category: activeCategory,
         description: description.trim(),
         imageUrl: primaryImageUrl,
-        images: allImages,
+        images: finalImages,
+        colors: finalColors,
         features: cleanFeatures
       };
 
@@ -893,148 +1112,323 @@ const Admin = () => {
               </div>
             </div>
 
-            {/* PRODUCT IMAGES SECTION - UP TO 5 IMAGES */}
-            <div className="form-group admin-images-section">
-              <div className="images-header-row">
-                <div>
-                  <label>
-                    Product Images <span className="required-star">*</span>
-                  </label>
-                  <span className="input-field-hint">
-                    Upload up to 5 photos. Photo #1 is the primary cover image on the shop catalog.
+            {/* COLOR OPTIONS TOGGLE */}
+            <div className="color-toggle-box">
+              <label className="color-toggle-label">
+                <input
+                  type="checkbox"
+                  checked={hasColorVariants}
+                  onChange={(e) => handleToggleColorVariants(e.target.checked)}
+                />
+                <div className="color-toggle-desc">
+                  <span className="color-toggle-title">
+                    <Palette size={16} /> Enable Color Options
+                  </span>
+                  <span className="color-toggle-help">
+                    Check this if this product comes in multiple colors with separate photos. (Leave unchecked for products that do not need color options).
                   </span>
                 </div>
-                <span className={`images-counter-pill ${imageItems.length === 5 ? 'full' : ''}`}>
-                  <Camera size={14} /> {imageItems.length} / 5 Photos
-                </span>
-              </div>
+              </label>
+            </div>
 
-              <div className="upload-box-wrapper">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  ref={fileInputRef}
-                  onChange={handleImageFilesChange}
-                  style={{ display: 'none' }}
-                  id="product-image-upload"
-                  disabled={imageItems.length >= 5 || compressing}
-                />
-
-                {compressing ? (
-                  <div className="compressing-box">
-                    <div className="spinner"></div>
-                    <span className="compressing-title">Compressing Photos...</span>
-                    <span className="compressing-subtitle">{compressProgress || 'Optimizing without losing quality (HD WebP)'}</span>
+            {hasColorVariants ? (
+              /* DEDICATED SEPARATE IMAGE AREA FOR EACH COLOR */
+              <div className="admin-color-variants-container">
+                <div className="color-variants-header">
+                  <div>
+                    <label className="section-subtitle-label">
+                      Color Variants & Separate Photos <span className="required-star">*</span>
+                    </label>
+                    <span className="input-field-hint">
+                      Each color has its own separate image upload area. Photo #1 of Color #1 will be the main store cover.
+                    </span>
                   </div>
-                ) : imageItems.length < 5 ? (
-                  <label htmlFor="product-image-upload" className={`file-dropzone multi-dropzone ${imageError ? 'dropzone-error' : ''}`}>
-                    <Upload size={32} className="upload-icon" />
-                    <span className="dropzone-title">Click to upload photos ({5 - imageItems.length} slot{5 - imageItems.length > 1 ? 's' : ''} left)</span>
-                    <span className="dropzone-subtitle">Choose up to 5 images • Auto-compressed to HD WebP to save storage space</span>
-                    {imageError && (
-                      <span className="dropzone-error-msg">* Please upload at least 1 image</span>
-                    )}
-                  </label>
-                ) : (
-                  <div className="max-images-notice">
-                    <CheckCircle2 size={18} className="text-green" />
-                    <span>Maximum 5 photos added! You can reorder, change cover, or delete items below.</span>
+                  <button
+                    type="button"
+                    className="add-color-btn"
+                    onClick={addColorVariant}
+                  >
+                    <Plus size={15} /> Add Another Color
+                  </button>
+                </div>
+
+                {colorVariants.map((colorItem, cIdx) => (
+                  <div key={colorItem.id || cIdx} className="admin-color-card">
+                    <div className="color-card-header">
+                      <div className="color-card-title-row">
+                        <span className="color-index-badge">Color #{cIdx + 1}</span>
+                        <div className="color-inputs-group">
+                          <input
+                            type="text"
+                            placeholder="Color name (e.g. Midnight Black, Pearl White)"
+                            value={colorItem.name}
+                            onChange={(e) => updateColorField(cIdx, 'name', e.target.value)}
+                            className="color-name-input"
+                            required
+                          />
+                          <div className="color-picker-wrapper" title="Choose color tone swatch">
+                            <input
+                              type="color"
+                              value={colorItem.colorCode || '#000000'}
+                              onChange={(e) => updateColorField(cIdx, 'colorCode', e.target.value)}
+                              className="color-hex-picker"
+                            />
+                            <span 
+                              className="color-preview-circle" 
+                              style={{ backgroundColor: colorItem.colorCode || '#000000' }} 
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {colorVariants.length > 1 && (
+                        <button
+                          type="button"
+                          className="remove-color-btn"
+                          onClick={() => removeColorVariant(cIdx)}
+                          title="Remove this color variant"
+                        >
+                          <Trash2 size={15} /> Remove Color
+                        </button>
+                      )}
+                    </div>
+
+                    {/* SEPARATE IMAGE UPLOAD AREA FOR THIS COLOR */}
+                    <div className="color-images-area">
+                      <div className="color-images-area-header">
+                        <span className="color-images-area-title">
+                          Photos for <strong>{colorItem.name || `Color #${cIdx + 1}`}</strong> ({colorItem.imageItems.length}/5)
+                        </span>
+                        <span className="color-images-area-hint">Photo #1 is this color's main view</span>
+                      </div>
+
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        id={`color-upload-${cIdx}`}
+                        style={{ display: 'none' }}
+                        onChange={(e) => handleColorImagesChange(cIdx, e)}
+                        disabled={colorItem.imageItems.length >= 5 || compressing}
+                      />
+
+                      {colorItem.imageItems.length < 5 && (
+                        <label htmlFor={`color-upload-${cIdx}`} className="file-dropzone color-dropzone">
+                          <Upload size={24} className="upload-icon" />
+                          <span className="dropzone-title">Upload photos for {colorItem.name || `Color #${cIdx + 1}`} ({5 - colorItem.imageItems.length} slot{5 - colorItem.imageItems.length > 1 ? 's' : ''} left)</span>
+                          <span className="dropzone-subtitle">Choose up to 5 images • Auto-compressed to HD WebP</span>
+                        </label>
+                      )}
+
+                      {colorItem.imageItems.length > 0 && (
+                        <div className="admin-gallery-slots color-gallery-slots">
+                          {colorItem.imageItems.map((item, imgIdx) => (
+                            <div key={item.id || imgIdx} className={`admin-gallery-card ${imgIdx === 0 ? 'is-cover' : ''}`}>
+                              <div className="gallery-card-thumb-wrap">
+                                <img src={item.previewUrl} alt={`${colorItem.name} photo ${imgIdx + 1}`} className="gallery-card-thumb" />
+                                {imgIdx === 0 ? (
+                                  <span className="cover-badge" title="Color primary view">
+                                    <Star size={11} fill="currentColor" /> Cover
+                                  </span>
+                                ) : (
+                                  <span className="slot-num-badge">#{imgIdx + 1}</span>
+                                )}
+                                <button
+                                  type="button"
+                                  className="gallery-card-remove"
+                                  onClick={() => removeColorImageItem(cIdx, imgIdx)}
+                                  title="Delete photo"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+
+                              <div className="gallery-card-actions">
+                                {imgIdx !== 0 ? (
+                                  <button
+                                    type="button"
+                                    className="set-cover-btn"
+                                    onClick={() => makeColorCoverImage(cIdx, imgIdx)}
+                                    title="Make this the primary photo for this color"
+                                  >
+                                    <Star size={12} /> Set Cover
+                                  </button>
+                                ) : (
+                                  <span className="primary-cover-label">Color Cover</span>
+                                )}
+                                <div className="reorder-btns">
+                                  <button
+                                    type="button"
+                                    className="reorder-btn"
+                                    disabled={imgIdx === 0}
+                                    onClick={() => moveColorImage(cIdx, imgIdx, -1)}
+                                    title="Move left"
+                                  >
+                                    <ChevronLeft size={14} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="reorder-btn"
+                                    disabled={imgIdx === colorItem.imageItems.length - 1}
+                                    onClick={() => moveColorImage(cIdx, imgIdx, 1)}
+                                    title="Move right"
+                                  >
+                                    <ChevronRight size={14} />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* STANDARD SINGLE PRODUCT IMAGES SECTION */
+              <div className="form-group admin-images-section">
+                <div className="images-header-row">
+                  <div>
+                    <label>
+                      Product Images <span className="required-star">*</span>
+                    </label>
+                    <span className="input-field-hint">
+                      Upload up to 5 photos. Photo #1 is the primary cover image on the shop catalog.
+                    </span>
+                  </div>
+                  <span className={`images-counter-pill ${imageItems.length === 5 ? 'full' : ''}`}>
+                    <Camera size={14} /> {imageItems.length} / 5 Photos
+                  </span>
+                </div>
+
+                <div className="upload-box-wrapper">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    ref={fileInputRef}
+                    onChange={handleImageFilesChange}
+                    style={{ display: 'none' }}
+                    id="product-image-upload"
+                    disabled={imageItems.length >= 5 || compressing}
+                  />
+
+                  {compressing ? (
+                    <div className="compressing-box">
+                      <div className="spinner"></div>
+                      <span className="compressing-title">Compressing Photos...</span>
+                      <span className="compressing-subtitle">{compressProgress || 'Optimizing without losing quality (HD WebP)'}</span>
+                    </div>
+                  ) : imageItems.length < 5 ? (
+                    <label htmlFor="product-image-upload" className={`file-dropzone multi-dropzone ${imageError ? 'dropzone-error' : ''}`}>
+                      <Upload size={32} className="upload-icon" />
+                      <span className="dropzone-title">Click to upload photos ({5 - imageItems.length} slot{5 - imageItems.length > 1 ? 's' : ''} left)</span>
+                      <span className="dropzone-subtitle">Choose up to 5 images • Auto-compressed to HD WebP to save storage space</span>
+                      {imageError && (
+                        <span className="dropzone-error-msg">* Please upload at least 1 image</span>
+                      )}
+                    </label>
+                  ) : (
+                    <div className="max-images-notice">
+                      <CheckCircle2 size={18} className="text-green" />
+                      <span>Maximum 5 photos added! You can reorder, change cover, or delete items below.</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* GALLERY THUMBNAIL MANAGEMENT GRID (UP TO 5 IMAGES) */}
+                {imageItems.length > 0 && (
+                  <div className="admin-gallery-grid-container">
+                    <div className="gallery-grid-header">
+                      <span className="grid-title">Gallery Slots ({imageItems.length}/5)</span>
+                      <span className="grid-help">Photo #1 is the store cover. Use arrows to reorder or click "Set Cover".</span>
+                    </div>
+
+                    <div className="admin-gallery-slots">
+                      {imageItems.map((item, idx) => (
+                        <div key={item.id || idx} className={`admin-gallery-card ${idx === 0 ? 'is-cover' : ''}`}>
+                          <div className="gallery-card-thumb-wrap">
+                            <img src={item.previewUrl} alt={`Photo ${idx + 1}`} className="gallery-card-thumb" />
+
+                            {idx === 0 ? (
+                              <span className="cover-badge" title="Primary cover photo for shop display">
+                                <Star size={11} fill="currentColor" /> Cover
+                              </span>
+                            ) : (
+                              <span className="slot-num-badge">#{idx + 1}</span>
+                            )}
+
+                            <button
+                              type="button"
+                              className="gallery-card-remove"
+                              onClick={() => removeImageItem(idx)}
+                              title="Remove photo"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+
+                          <div className="gallery-card-actions">
+                            {idx !== 0 ? (
+                              <button
+                                type="button"
+                                className="set-cover-btn"
+                                onClick={() => makeCoverImage(idx)}
+                                title="Make this the primary cover image"
+                              >
+                                <Star size={12} /> Set Cover
+                              </button>
+                            ) : (
+                              <span className="primary-cover-label">Primary Cover</span>
+                            )}
+
+                            <div className="reorder-btns">
+                              <button
+                                type="button"
+                                className="reorder-btn"
+                                disabled={idx === 0}
+                                onClick={() => moveImage(idx, -1)}
+                                title="Move left"
+                              >
+                                <ChevronLeft size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                className="reorder-btn"
+                                disabled={idx === imageItems.length - 1}
+                                onClick={() => moveImage(idx, 1)}
+                                title="Move right"
+                              >
+                                <ChevronRight size={14} />
+                              </button>
+                            </div>
+                          </div>
+
+                          {item.compressionInfo && (
+                            <div className="gallery-card-compression">
+                              <Zap size={10} /> Saved {item.compressionInfo.savedPercent}%
+                            </div>
+                          )}
+                        </div>
+                      ))}
+
+                      {imageItems.length < 5 && (
+                        <label
+                          htmlFor="product-image-upload"
+                          className="admin-add-more-slot"
+                          title={`Add photo (${imageItems.length + 1} of 5)`}
+                        >
+                          <Plus size={22} />
+                          <span>Add Photo</span>
+                          <span className="add-more-count">({imageItems.length}/5)</span>
+                        </label>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
-
-              {/* GALLERY THUMBNAIL MANAGEMENT GRID (UP TO 5 IMAGES) */}
-              {imageItems.length > 0 && (
-                <div className="admin-gallery-grid-container">
-                  <div className="gallery-grid-header">
-                    <span className="grid-title">Gallery Slots ({imageItems.length}/5)</span>
-                    <span className="grid-help">Photo #1 is the store cover. Use arrows to reorder or click "Set Cover".</span>
-                  </div>
-
-                  <div className="admin-gallery-slots">
-                    {imageItems.map((item, idx) => (
-                      <div key={item.id || idx} className={`admin-gallery-card ${idx === 0 ? 'is-cover' : ''}`}>
-                        <div className="gallery-card-thumb-wrap">
-                          <img src={item.previewUrl} alt={`Photo ${idx + 1}`} className="gallery-card-thumb" />
-
-                          {idx === 0 ? (
-                            <span className="cover-badge" title="Primary cover photo for shop display">
-                              <Star size={11} fill="currentColor" /> Cover
-                            </span>
-                          ) : (
-                            <span className="slot-num-badge">#{idx + 1}</span>
-                          )}
-
-                          <button
-                            type="button"
-                            className="gallery-card-remove"
-                            onClick={() => removeImageItem(idx)}
-                            title="Remove photo"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-
-                        <div className="gallery-card-actions">
-                          {idx !== 0 ? (
-                            <button
-                              type="button"
-                              className="set-cover-btn"
-                              onClick={() => makeCoverImage(idx)}
-                              title="Make this the primary cover image"
-                            >
-                              <Star size={12} /> Set Cover
-                            </button>
-                          ) : (
-                            <span className="primary-cover-label">Primary Cover</span>
-                          )}
-
-                          <div className="reorder-btns">
-                            <button
-                              type="button"
-                              className="reorder-btn"
-                              disabled={idx === 0}
-                              onClick={() => moveImage(idx, -1)}
-                              title="Move left"
-                            >
-                              <ChevronLeft size={14} />
-                            </button>
-                            <button
-                              type="button"
-                              className="reorder-btn"
-                              disabled={idx === imageItems.length - 1}
-                              onClick={() => moveImage(idx, 1)}
-                              title="Move right"
-                            >
-                              <ChevronRight size={14} />
-                            </button>
-                          </div>
-                        </div>
-
-                        {item.compressionInfo && (
-                          <div className="gallery-card-compression">
-                            <Zap size={10} /> Saved {item.compressionInfo.savedPercent}%
-                          </div>
-                        )}
-                      </div>
-                    ))}
-
-                    {imageItems.length < 5 && (
-                      <label
-                        htmlFor="product-image-upload"
-                        className="admin-add-more-slot"
-                        title={`Add photo (${imageItems.length + 1} of 5)`}
-                      >
-                        <Plus size={22} />
-                        <span>Add Photo</span>
-                        <span className="add-more-count">({imageItems.length}/5)</span>
-                      </label>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+            )}
 
             <button
               type="submit"
@@ -1134,7 +1528,14 @@ const Admin = () => {
                           </div>
                           <div className="product-info-wrap">
                             <span className="table-name">{p.name}</span>
-                            <span className="table-id">ID: {p.id}</span>
+                            <div className="table-meta-tags">
+                              <span className="table-id">ID: {p.id}</span>
+                              {Array.isArray(p.colors) && p.colors.length > 0 && (
+                                <span className="table-colors-pill" title={`${p.colors.map(c => c.name).join(', ')}`}>
+                                  <Palette size={10} /> {p.colors.length} Colors
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </td>
                         <td data-label="Category">
