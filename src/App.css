@@ -1246,33 +1246,41 @@
    ======================================================== */
 .admin-container {
   max-width: 1280px;
-  margin: clamp(1.5rem, 3.5vw, 2.5rem) auto 5rem;
-  padding: 0 clamp(1rem, 3vw, 2rem);
+  width: 100%;
+  margin: clamp(1rem, 3vw, 2.5rem) auto 5rem;
+  padding: 0 clamp(0.75rem, 3vw, 2rem);
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .admin-header {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .admin-header h1 {
-  font-size: 2.25rem;
-  margin-top: 0.5rem;
+  font-size: clamp(1.4rem, 4.5vw, 2.25rem);
+  margin-top: 0.35rem;
   color: var(--color-text);
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 .admin-header p {
   color: var(--color-text-light);
   margin-top: 0.25rem;
+  font-size: clamp(0.85rem, 2.5vw, 1rem);
 }
 
 .admin-alert {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 1rem 1.25rem;
+  padding: 0.85rem 1rem;
   border-radius: var(--radius-md);
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   font-weight: 500;
+  font-size: 0.9rem;
+  word-break: break-word;
   animation: fadeIn 0.3s ease;
 }
 
@@ -1310,22 +1318,35 @@
 .admin-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2.5rem;
+  gap: clamp(1.25rem, 2.5vw, 2.5rem);
   align-items: flex-start;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 @media (max-width: 960px) {
   .admin-grid {
     grid-template-columns: 1fr;
+    gap: 1.5rem;
   }
+}
+
+.admin-grid > * {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .admin-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: clamp(1.25rem, 3vw, 2rem);
+  padding: clamp(1rem, 3.5vw, 1.85rem);
   box-shadow: var(--shadow-sm);
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .card-title {
@@ -1429,10 +1450,13 @@
 .feature-input-row {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
+  width: 100%;
 }
 
 .feature-input-row input {
   flex: 1;
+  min-width: 0;
 }
 
 .remove-feature-btn {
@@ -1440,8 +1464,13 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: var(--color-text-light);
-  padding: 0 0.6rem;
+  min-width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  flex-shrink: 0;
   transition: var(--transition);
 }
 
@@ -1455,21 +1484,25 @@
 .image-mode-tabs {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.65rem;
+  width: 100%;
 }
 
 .tab-btn {
+  flex: 1;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.4rem;
-  padding: 0.4rem 0.8rem;
-  font-size: 0.85rem;
-  font-weight: 500;
+  padding: 0.55rem 0.5rem;
+  font-size: clamp(0.78rem, 2.2vw, 0.85rem);
+  font-weight: 600;
   border: 1px solid var(--color-border);
   background: var(--color-background);
   color: var(--color-text-light);
   border-radius: var(--radius-sm);
   cursor: pointer;
+  white-space: nowrap;
   transition: var(--transition);
 }
 
@@ -1484,12 +1517,14 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem 1.5rem;
+  padding: clamp(1.25rem, 4vw, 2rem) clamp(0.75rem, 3vw, 1.5rem);
   border: 2px dashed var(--color-border);
   border-radius: var(--radius-md);
   background-color: var(--color-background);
   cursor: pointer;
   text-align: center;
+  width: 100%;
+  box-sizing: border-box;
   transition: var(--transition);
 }
 
@@ -1668,8 +1703,10 @@
 /* Products Table */
 .products-table-wrapper {
   overflow-x: auto;
-  max-height: 520px;
+  max-height: 540px;
   overflow-y: auto;
+  border-radius: var(--radius-md);
+  width: 100%;
 }
 
 .admin-table {
@@ -1687,6 +1724,7 @@
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 
 .admin-table td {
@@ -1701,6 +1739,11 @@
   gap: 0.75rem;
 }
 
+.product-info-wrap {
+  min-width: 0;
+  flex: 1;
+}
+
 .table-thumb {
   width: 44px;
   height: 44px;
@@ -1713,7 +1756,8 @@
   display: block;
   font-weight: 600;
   color: var(--color-text);
-  line-height: 1.2;
+  line-height: 1.25;
+  word-break: break-word;
 }
 
 .table-id {
@@ -1731,6 +1775,7 @@
   border-radius: 12px;
   font-size: 0.75rem;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .table-price {
@@ -1740,16 +1785,20 @@
 
 .delete-btn {
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
   color: #ef4444;
   cursor: pointer;
-  padding: 0.4rem;
-  border-radius: 4px;
+  padding: 0.4rem 0.55rem;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: var(--transition);
 }
 
 .delete-btn:hover {
   background-color: #fee2e2;
+  border-color: #fca5a5;
 }
 
 /* Table Action Buttons & Edit Mode */
@@ -1786,6 +1835,119 @@
 
 .row-editing {
   background-color: #eff6ff !important;
+}
+
+/* Responsive Transformation for Mobile Devices (<= 768px) */
+@media (max-width: 768px) {
+  .products-table-wrapper {
+    overflow-x: visible;
+    max-height: none;
+    border-radius: 0;
+  }
+
+  .admin-table,
+  .admin-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    width: 100%;
+  }
+
+  .admin-table thead {
+    display: none;
+  }
+
+  .admin-table tr {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    padding: 1rem;
+    background: #ffffff;
+    border: 1.5px solid var(--color-border);
+    border-radius: 12px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+    box-sizing: border-box;
+    width: 100%;
+  }
+
+  .admin-table tr.row-editing {
+    border-color: #2563eb;
+    background: #f0f7ff !important;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+  }
+
+  .admin-table td {
+    padding: 0;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 0.88rem;
+  }
+
+  .admin-table td.product-cell {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #f1f5f9;
+    text-align: left;
+  }
+
+  .admin-table td.product-cell .table-thumb {
+    width: 52px;
+    height: 52px;
+    border-radius: 8px;
+  }
+
+  .admin-table td.product-cell .table-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--color-text);
+  }
+
+  .admin-table td:not(.product-cell):not(.table-actions-cell)::before {
+    content: attr(data-label);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .admin-table td.table-actions-cell {
+    padding-top: 0.75rem;
+    border-top: 1px solid #f1f5f9;
+    display: block;
+    width: 100%;
+  }
+
+  .table-actions-group {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.6rem;
+  }
+
+  .table-actions-group .edit-btn {
+    justify-content: center;
+    padding: 0.6rem 1rem;
+    font-size: 0.88rem;
+    border-radius: 8px;
+  }
+
+  .table-actions-group .delete-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.6rem 1rem;
+    background: #fee2e2;
+    border: 1px solid #fca5a5;
+    border-radius: 8px;
+  }
 }
 
 .card-title-header {
@@ -1869,7 +2031,37 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
   margin-bottom: 1.5rem;
+  width: 100%;
+}
+
+.admin-user-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.admin-user-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  color: #475569;
+  font-weight: 500;
+  max-width: 240px;
+}
+
+.admin-user-email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .logout-btn {
@@ -1879,12 +2071,13 @@
   background-color: #fee2e2;
   color: #dc2626;
   border: 1px solid #fca5a5;
-  padding: 0.45rem 1rem;
+  padding: 0.45rem 0.95rem;
   border-radius: var(--radius-sm);
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
+  white-space: nowrap;
 }
 
 .logout-btn:hover {
@@ -1892,19 +2085,41 @@
   color: white;
 }
 
+@media (max-width: 520px) {
+  .admin-header-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .admin-user-nav {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .admin-user-pill {
+    max-width: 180px;
+  }
+}
+
 .admin-login-wrapper {
+  width: 100%;
   max-width: 440px;
-  margin: 4rem auto 6rem;
-  padding: 0 1.5rem;
+  margin: clamp(2rem, 6vw, 4rem) auto clamp(3rem, 8vw, 6rem);
+  padding: 0 clamp(0.75rem, 3vw, 1.5rem);
+  box-sizing: border-box;
 }
 
 .admin-login-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: 2.5rem 2rem;
+  padding: clamp(1.75rem, 5vw, 2.5rem) clamp(1.15rem, 4vw, 2rem);
   box-shadow: var(--shadow-md);
   text-align: center;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .login-icon-box {
@@ -2607,10 +2822,25 @@
   display: flex;
   gap: 0.5rem;
   align-items: center;
+  width: 100%;
 }
 
 .url-input-row input {
   flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .url-input-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .add-url-img-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 0.75rem 1rem;
+  }
 }
 
 .add-url-img-btn {
@@ -2655,11 +2885,13 @@
 /* Gallery Grid in Admin Form */
 .admin-gallery-grid-container {
   margin-top: 1.25rem;
-  padding: 1.1rem;
+  padding: clamp(0.75rem, 2.5vw, 1.1rem);
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .gallery-grid-header {
@@ -2686,8 +2918,16 @@
 
 .admin-gallery-slots {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fill, minmax(115px, 1fr));
+  gap: 0.65rem;
+  width: 100%;
+}
+
+@media (max-width: 420px) {
+  .admin-gallery-slots {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
 }
 
 .admin-gallery-card {

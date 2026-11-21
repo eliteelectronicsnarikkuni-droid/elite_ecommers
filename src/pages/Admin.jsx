@@ -1,23 +1,23 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { 
-  getProducts, 
-  createProduct, 
-  updateProduct, 
-  deleteProduct, 
-  uploadProductImage 
+import {
+  getProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  uploadProductImage
 } from '../services/productService';
 import { compressImage, formatFileSize } from '../utils/imageCompressor';
-import { 
-  Plus, 
-  Trash2, 
-  Upload, 
-  Image as ImageIcon, 
-  CheckCircle2, 
-  AlertCircle, 
-  ArrowLeft, 
-  X, 
+import {
+  Plus,
+  Trash2,
+  Upload,
+  Image as ImageIcon,
+  CheckCircle2,
+  AlertCircle,
+  ArrowLeft,
+  X,
   Package,
   Lock,
   Mail,
@@ -220,18 +220,18 @@ const Admin = () => {
 
     const availableSlots = 5 - imageItems.length;
     if (availableSlots <= 0) {
-      setFeedback({ 
-        type: 'error', 
-        message: 'Maximum 5 images allowed per product. Please delete an image below to add a new one.' 
+      setFeedback({
+        type: 'error',
+        message: 'Maximum 5 images allowed per product. Please delete an image below to add a new one.'
       });
       return;
     }
 
     const filesToProcess = files.slice(0, availableSlots);
     if (files.length > availableSlots) {
-      setFeedback({ 
-        type: 'info', 
-        message: `Only ${availableSlots} more image(s) could be added (max 5). Excess files were skipped.` 
+      setFeedback({
+        type: 'info',
+        message: `Only ${availableSlots} more image(s) could be added (max 5). Excess files were skipped.`
       });
     }
 
@@ -549,9 +549,7 @@ const Admin = () => {
             <Lock size={28} />
           </div>
           <h2>Admin Portal Login</h2>
-          <p className="login-subtitle">
-            Protected by Supabase Cloud Authentication. Sign in with your registered admin email.
-          </p>
+
 
           {loginError && (
             <div className="admin-alert error" style={{ marginBottom: '1.25rem' }}>
@@ -610,9 +608,9 @@ const Admin = () => {
               </div>
             </div>
 
-            <button 
-              type="submit" 
-              className="login-submit-btn" 
+            <button
+              type="submit"
+              className="login-submit-btn"
               disabled={authenticating || lockoutSeconds > 0}
             >
               {authenticating ? (
@@ -627,10 +625,7 @@ const Admin = () => {
             </button>
           </form>
 
-          <div className="security-notice-badge">
-            <ShieldCheck size={13} color="#10b981" />
-            <span>100% Protected by Supabase Cloud Authentication</span>
-          </div>
+
 
           <Link to="/" className="login-footer-link" style={{ marginTop: '1.25rem' }}>
             <ArrowLeft size={16} /> Return to Store
@@ -647,11 +642,11 @@ const Admin = () => {
         <Link to="/" className="back-btn" style={{ margin: 0 }}>
           <ArrowLeft size={18} /> Back to Store
         </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div className="admin-user-nav">
           {session?.user?.email && (
-            <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+            <span className="admin-user-pill" title={session.user.email}>
               <ShieldCheck size={15} color="#10b981" />
-              {session.user.email}
+              <span className="admin-user-email">{session.user.email}</span>
             </span>
           )}
           <button onClick={handleLogout} className="logout-btn">
@@ -849,7 +844,7 @@ const Admin = () => {
                   <Camera size={14} /> {imageItems.length} / 5 Photos
                 </span>
               </div>
-              
+
               <div className="image-mode-tabs">
                 <button
                   type="button"
@@ -943,7 +938,7 @@ const Admin = () => {
                       <div key={item.id || idx} className={`admin-gallery-card ${idx === 0 ? 'is-cover' : ''}`}>
                         <div className="gallery-card-thumb-wrap">
                           <img src={item.previewUrl} alt={`Photo ${idx + 1}`} className="gallery-card-thumb" />
-                          
+
                           {idx === 0 ? (
                             <span className="cover-badge" title="Primary cover photo for shop display">
                               <Star size={11} fill="currentColor" /> Cover
@@ -1007,9 +1002,9 @@ const Admin = () => {
                     ))}
 
                     {imageItems.length < 5 && (
-                      <label 
-                        htmlFor="product-image-upload" 
-                        className="admin-add-more-slot" 
+                      <label
+                        htmlFor="product-image-upload"
+                        className="admin-add-more-slot"
                         title={`Add photo (${imageItems.length + 1} of 5)`}
                       >
                         <Plus size={22} />
@@ -1079,27 +1074,27 @@ const Admin = () => {
                     });
                     const originalFormatted = p.originalPrice
                       ? Number(p.originalPrice).toLocaleString('en-IN', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2
-                        })
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      })
                       : null;
                     const formattedDate = p.createdAt
                       ? new Date(p.createdAt).toLocaleDateString('en-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric'
-                        })
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                      })
                       : null;
                     const formattedTime = p.createdAt
                       ? new Date(p.createdAt).toLocaleTimeString('en-IN', {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })
                       : null;
 
                     return (
                       <tr key={p.id} className={editingProductId === p.id ? 'row-editing' : ''}>
-                        <td className="product-cell">
+                        <td className="product-cell" data-label="Item">
                           <div className="table-thumb-wrap">
                             <img
                               src={p.imageUrl || 'https://via.placeholder.com/60'}
@@ -1112,15 +1107,15 @@ const Admin = () => {
                               </span>
                             )}
                           </div>
-                          <div>
+                          <div className="product-info-wrap">
                             <span className="table-name">{p.name}</span>
                             <span className="table-id">ID: {p.id}</span>
                           </div>
                         </td>
-                        <td>
+                        <td data-label="Category">
                           <span className="table-badge">{p.category}</span>
                         </td>
-                        <td className="table-price-cell">
+                        <td className="table-price-cell" data-label="Pricing">
                           <div className="table-price-main">₹{priceFormatted}</div>
                           {originalFormatted && Number(p.originalPrice) > Number(p.price) && (
                             <div className="table-price-sub">
@@ -1129,7 +1124,7 @@ const Admin = () => {
                             </div>
                           )}
                         </td>
-                        <td className="table-date-cell">
+                        <td className="table-date-cell" data-label="Added On">
                           {formattedDate ? (
                             <div className="table-added-time" title={p.createdAt}>
                               <div className="table-date-str">
@@ -1142,7 +1137,7 @@ const Admin = () => {
                             <span className="table-empty-date">—</span>
                           )}
                         </td>
-                        <td className="table-actions-cell">
+                        <td className="table-actions-cell" data-label="Actions">
                           <div className="table-actions-group">
                             <button
                               className="edit-btn"
