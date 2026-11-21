@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import { getProducts, getCachedProducts } from '../services/productService';
 import ProductCard from '../components/ProductCard';
 import { 
-  SlidersHorizontal, 
   ArrowUpDown, 
   IndianRupee, 
   X, 
@@ -11,17 +10,6 @@ import {
   Filter, 
   Sparkles 
 } from 'lucide-react';
-
-const DEFAULT_CATEGORIES = [
-  'All',
-  'Speakers & Audio',
-  'LED Lights',
-  'Soldering & Tools',
-  'Multimeters & Testers',
-  'Torches & Flashlights',
-  'Electronic Components',
-  'Accessories'
-];
 
 const PRICE_RANGES = [
   { id: 'all', label: 'All Prices' },
@@ -42,7 +30,6 @@ const SORT_OPTIONS = [
 const Home = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
-  const categoryFromUrl = searchParams.get('category') || 'All';
 
   // Synchronously initialize from cache so back navigation renders full height immediately with 0ms delay!
   const cachedInitial = getCachedProducts();
@@ -51,15 +38,8 @@ const Home = () => {
   const [error, setError] = useState(null);
 
   // Filter & Sort States
-  const [selectedCategory, setSelectedCategory] = useState(categoryFromUrl);
   const [selectedPriceRange, setSelectedPriceRange] = useState('all');
   const [selectedSort, setSelectedSort] = useState('featured');
-
-  useEffect(() => {
-    if (categoryFromUrl) {
-      setSelectedCategory(categoryFromUrl);
-    }
-  }, [categoryFromUrl]);
 
   useEffect(() => {
     if (window.location.hash === '#about') {
@@ -119,16 +99,9 @@ const Home = () => {
     };
   }, []);
 
-  // Compute all available categories from database products
-  const availableCategories = useMemo(() => {
-    const presentInDb = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
-    const merged = ['All', ...new Set([...DEFAULT_CATEGORIES.slice(1), ...presentInDb])];
-    return merged;
-  }, [products]);
-
   const isSearching = Boolean(query && query.trim());
 
-  // Automatically reset sort to 'featured', price to 'all', and category to 'All' when search query is cleared
+  // Automatically reset sort to 'featured' and price to 'all' when search query is cleared
   useEffect(() => {
     if (!isSearching) {
       if (selectedSort !== 'featured') {
@@ -137,13 +110,10 @@ const Home = () => {
       if (selectedPriceRange !== 'all') {
         setSelectedPriceRange('all');
       }
-      if (selectedCategory !== 'All') {
-        setSelectedCategory('All');
-      }
     }
-  }, [isSearching, selectedSort, selectedPriceRange, selectedCategory]);
+  }, [isSearching, selectedSort, selectedPriceRange]);
 
-  // Combined search, category filter, price filter & sorting
+  // Combined search, price filter & sorting
   const filteredProducts = useMemo(() => {
     const queryClean = query.trim().toLowerCase();
 
@@ -156,11 +126,7 @@ const Home = () => {
           (product.category && product.category.toLowerCase().includes(queryClean))
         );
 
-        // 2. Category Match (only applied when searching)
-        const matchesCategory = !isSearching || selectedCategory === 'All' || 
-          (product.category && product.category.toLowerCase() === selectedCategory.toLowerCase());
-
-        // 3. Price Range Match (only applied when searching)
+        // 2. Price Range Match (only applied when searching)
         let matchesPrice = true;
         if (isSearching && selectedPriceRange !== 'all') {
           const price = Number(product.price || 0);
@@ -175,7 +141,7 @@ const Home = () => {
           }
         }
 
-        return matchesQuery && matchesCategory && matchesPrice;
+        return matchesQuery && matchesPrice;
       })
       .sort((a, b) => {
         if (!isSearching) return 0;
@@ -193,16 +159,14 @@ const Home = () => {
         }
         return 0; // Default Featured
       });
-  }, [products, query, selectedCategory, selectedPriceRange, selectedSort, isSearching]);
+  }, [products, query, selectedPriceRange, selectedSort, isSearching]);
 
   const activeFiltersCount = 
-    (isSearching && selectedCategory !== 'All' ? 1 : 0) + 
     (isSearching && selectedPriceRange !== 'all' ? 1 : 0) + 
     (isSearching && selectedSort !== 'featured' ? 1 : 0) + 
     (isSearching ? 1 : 0);
 
   const handleResetFilters = () => {
-    setSelectedCategory('All');
     setSelectedPriceRange('all');
     setSelectedSort('featured');
     if (query) {
@@ -238,23 +202,6 @@ const Home = () => {
             </div>
 
             <div className="filter-toolbar-right">
-              {/* Category Filter for Search Results */}
-              <div className="filter-select-container">
-                <SlidersHorizontal size={14} className="filter-select-icon" />
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="filter-dropdown-select"
-                  aria-label="Filter search results by category"
-                >
-                  {availableCategories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat === 'All' ? 'All Categories' : cat}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               {/* Quick Price Range Filter */}
               <div className="filter-select-container">
                 <IndianRupee size={14} className="filter-select-icon" />
@@ -289,18 +236,9 @@ const Home = () => {
         )}
 
         {/* ACTIVE FILTER TAGS PILLS - ONLY SHOWN WHEN SEARCHING */}
-        {!loading && isSearching && (selectedCategory !== 'All' || selectedPriceRange !== 'all' || selectedSort !== 'featured') && (
+        {!loading && isSearching && (selectedPriceRange !== 'all' || selectedSort !== 'featured') && (
           <div className="active-filter-tags-row">
             <span className="active-tags-title">Active Filters:</span>
-
-            {selectedCategory !== 'All' && (
-              <span className="active-filter-chip">
-                Category: {selectedCategory}
-                <button type="button" onClick={() => setSelectedCategory('All')} title="Remove category filter">
-                  <X size={12} />
-                </button>
-              </span>
-            )}
 
             {selectedPriceRange !== 'all' && (
               <span className="active-filter-chip">
@@ -353,7 +291,7 @@ const Home = () => {
               <Filter size={32} />
             </div>
             <h3>No products found</h3>
-            <p>No products match your selected category or price filter.</p>
+            <p>No products match your search or price filter.</p>
             <button 
               type="button" 
               className="clear-all-empty-btn" 
