@@ -455,7 +455,12 @@ const Admin = () => {
     }
 
     if (!offerPrice || isNaN(offerPrice) || Number(offerPrice) <= 0) {
-      setFeedback({ type: 'error', message: 'Please enter a valid Offer Price in ₹.' });
+      setFeedback({ type: 'error', message: 'Offer Price (₹) is required and must be greater than 0.' });
+      return;
+    }
+
+    if (imageItems.length === 0) {
+      setFeedback({ type: 'error', message: 'Product image is required. Please upload at least 1 photo.' });
       return;
     }
 
@@ -886,9 +891,9 @@ const Admin = () => {
             <div className="form-group admin-images-section">
               <div className="images-header-row">
                 <div>
-                  <label>Product Images (Up to 5)</label>
+                  <label>Product Images * (At least 1 photo required, up to 5)</label>
                   <span className="input-field-hint">
-                    Upload up to 5 photos. Photo #1 is the primary cover image seen on the shop catalog. (Optional)
+                    Upload at least 1 image. Photo #1 will be the primary cover photo on the shop catalog.
                   </span>
                 </div>
                 <span className={`images-counter-pill ${imageItems.length === 5 ? 'full' : ''}`}>
