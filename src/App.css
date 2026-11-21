@@ -2619,6 +2619,84 @@
 }
 
 /* ========================================================
+   Product Detail Trust Assurances (COD & Checking Warranty)
+   ======================================================== */
+.detail-assurances-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1.5rem;
+}
+
+.assurance-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+.assurance-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.07);
+}
+
+.assurance-icon-circle {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.assurance-icon-circle.cod-icon {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.assurance-icon-circle.warranty-icon {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.assurance-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.assurance-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.assurance-sub {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin-top: 0.15rem;
+}
+
+@media (max-width: 480px) {
+  .detail-assurances-grid {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  .assurance-card {
+    padding: 0.75rem 0.9rem;
+  }
+}
+
+/* ========================================================
    Admin Form Price Fields & Discount Calculator
    ======================================================== */
 .prices-row {

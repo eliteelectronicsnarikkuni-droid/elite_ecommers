@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getProductById } from '../services/productService';
-import { ArrowLeft, MessageCircle, Tag, ChevronLeft, ChevronRight, Camera, Zap, Package } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Tag, ChevronLeft, ChevronRight, Camera, Zap, Package, Banknote, ShieldCheck } from 'lucide-react';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -271,6 +271,29 @@ const ProductDetail = () => {
                 🎉 Special Deal! You save <strong>₹{savingsFormatted}</strong> ({discountPercentage}% OFF MRP)
               </p>
             )}
+          </div>
+
+          {/* Trust Assurances: Cash on Delivery & 5 Days Checking Warranty */}
+          <div className="detail-assurances-grid">
+            <div className="assurance-card">
+              <div className="assurance-icon-circle cod-icon">
+                <Banknote size={22} />
+              </div>
+              <div className="assurance-content">
+                <span className="assurance-title">Cash on Delivery</span>
+                <span className="assurance-sub">Pay safely upon delivery</span>
+              </div>
+            </div>
+
+            <div className="assurance-card">
+              <div className="assurance-icon-circle warranty-icon">
+                <ShieldCheck size={22} />
+              </div>
+              <div className="assurance-content">
+                <span className="assurance-title">5 Days Checking Warranty</span>
+                <span className="assurance-sub">100% testing & replacement</span>
+              </div>
+            </div>
           </div>
 
           <div className="detail-description">
