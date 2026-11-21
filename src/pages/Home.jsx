@@ -161,11 +161,6 @@ const Home = () => {
       });
   }, [products, query, selectedPriceRange, selectedSort, isSearching]);
 
-  const activeFiltersCount = 
-    (isSearching && selectedPriceRange !== 'all' ? 1 : 0) + 
-    (isSearching && selectedSort !== 'featured' ? 1 : 0) + 
-    (isSearching ? 1 : 0);
-
   const handleResetFilters = () => {
     setSelectedPriceRange('all');
     setSelectedSort('featured');
@@ -185,20 +180,13 @@ const Home = () => {
           </div>
         )}
 
-        {/* CONTROLS TOOLBAR: Category, Price & Sort Filters - ONLY SHOWN WHEN SEARCHING */}
+        {/* CONTROLS TOOLBAR: Price & Sort Filters - ONLY SHOWN WHEN SEARCHING */}
         {!loading && isSearching && (
           <div className="filter-controls-toolbar">
             <div className="filter-toolbar-left">
-              {activeFiltersCount > 0 && (
-                <button 
-                  type="button" 
-                  className="reset-all-filters-btn" 
-                  onClick={handleResetFilters}
-                  title="Clear all active filters"
-                >
-                  <RotateCcw size={12} /> Clear Filters
-                </button>
-              )}
+              <span className="products-count-label">
+                Found <strong>{filteredProducts.length}</strong> product{filteredProducts.length === 1 ? '' : 's'}
+              </span>
             </div>
 
             <div className="filter-toolbar-right">
