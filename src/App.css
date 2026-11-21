@@ -2619,80 +2619,117 @@
 }
 
 /* ========================================================
-   Product Detail Trust Assurances (COD & Checking Warranty)
+   Flipkart-Style 3 Features Assurance Row
    ======================================================== */
-.detail-assurances-grid {
+.flipkart-features-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 0.85rem;
-  margin-bottom: 1.5rem;
-}
-
-.assurance-card {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  padding: 0.85rem 1rem;
-  background: #ffffff;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  padding: 1rem 0.75rem;
+  background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  transition: all 0.2s ease;
+  margin-bottom: 1.5rem;
+  text-align: center;
 }
 
-.assurance-card:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.07);
+.flipkart-feature-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0.25rem 0.35rem;
+  position: relative;
 }
 
-.assurance-icon-circle {
-  width: 42px;
-  height: 42px;
-  min-width: 42px;
-  border-radius: 10px;
+/* Subtle vertical divider between items */
+.flipkart-feature-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: -0.25rem;
+  top: 15%;
+  height: 70%;
+  width: 1px;
+  background: #e2e8f0;
+}
+
+.flipkart-feature-icon-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-bottom: 0.5rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.assurance-icon-circle.cod-icon {
-  background: #ecfdf5;
-  color: #059669;
-  border: 1px solid #a7f3d0;
+.flipkart-feature-item:hover .flipkart-feature-icon-circle {
+  transform: translateY(-2px);
 }
 
-.assurance-icon-circle.warranty-icon {
+.flipkart-feature-icon-circle.delivery {
   background: #eff6ff;
   color: #2563eb;
   border: 1px solid #bfdbfe;
 }
 
-.assurance-content {
-  display: flex;
-  flex-direction: column;
+.flipkart-feature-icon-circle.cod {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
 }
 
-.assurance-title {
-  font-size: 0.92rem;
+.flipkart-feature-icon-circle.warranty {
+  background: #fef3c7;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+.flipkart-feature-title {
+  font-size: 0.85rem;
   font-weight: 700;
   color: #0f172a;
   line-height: 1.25;
+  margin-bottom: 0.2rem;
 }
 
-.assurance-sub {
-  font-size: 0.78rem;
+.flipkart-feature-sub {
+  font-size: 0.72rem;
   color: #64748b;
-  margin-top: 0.15rem;
+  font-weight: 500;
+  line-height: 1.2;
 }
 
 @media (max-width: 480px) {
-  .detail-assurances-grid {
-    grid-template-columns: 1fr;
-    gap: 0.65rem;
+  .flipkart-features-row {
+    padding: 0.85rem 0.35rem;
+    gap: 0.25rem;
   }
 
-  .assurance-card {
-    padding: 0.75rem 0.9rem;
+  .flipkart-feature-item {
+    padding: 0.15rem 0.2rem;
+  }
+
+  .flipkart-feature-icon-circle {
+    width: 36px;
+    height: 36px;
+    margin-bottom: 0.35rem;
+  }
+
+  .flipkart-feature-icon-circle svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .flipkart-feature-title {
+    font-size: 0.725rem;
+    line-height: 1.2;
+    margin-bottom: 0.1rem;
+  }
+
+  .flipkart-feature-sub {
+    font-size: 0.65rem;
   }
 }
 

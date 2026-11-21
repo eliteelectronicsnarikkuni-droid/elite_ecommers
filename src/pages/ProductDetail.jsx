@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getProductById } from '../services/productService';
-import { ArrowLeft, MessageCircle, Tag, ChevronLeft, ChevronRight, Camera, Zap, Package, Banknote, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Tag, ChevronLeft, ChevronRight, Camera, Zap, Package, Banknote, ShieldCheck, Truck } from 'lucide-react';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -273,26 +273,30 @@ const ProductDetail = () => {
             )}
           </div>
 
-          {/* Trust Assurances: Cash on Delivery & 5 Days Checking Warranty */}
-          <div className="detail-assurances-grid">
-            <div className="assurance-card">
-              <div className="assurance-icon-circle cod-icon">
-                <Banknote size={22} />
+          {/* Flipkart-Style 3 Features Assurance Row */}
+          <div className="flipkart-features-row">
+            <div className="flipkart-feature-item">
+              <div className="flipkart-feature-icon-circle delivery">
+                <Truck size={20} />
               </div>
-              <div className="assurance-content">
-                <span className="assurance-title">Cash on Delivery</span>
-                <span className="assurance-sub">Pay safely upon delivery</span>
-              </div>
+              <span className="flipkart-feature-title">Free Delivery</span>
+              <span className="flipkart-feature-sub">On all orders</span>
             </div>
 
-            <div className="assurance-card">
-              <div className="assurance-icon-circle warranty-icon">
-                <ShieldCheck size={22} />
+            <div className="flipkart-feature-item">
+              <div className="flipkart-feature-icon-circle cod">
+                <Banknote size={20} />
               </div>
-              <div className="assurance-content">
-                <span className="assurance-title">5 Days Checking Warranty</span>
-                <span className="assurance-sub">100% testing & replacement</span>
+              <span className="flipkart-feature-title">Cash on Delivery</span>
+              <span className="flipkart-feature-sub">Pay at doorstep</span>
+            </div>
+
+            <div className="flipkart-feature-item">
+              <div className="flipkart-feature-icon-circle warranty">
+                <ShieldCheck size={20} />
               </div>
+              <span className="flipkart-feature-title">5 Days Checking Warranty</span>
+              <span className="flipkart-feature-sub">Replacement assured</span>
             </div>
           </div>
 
