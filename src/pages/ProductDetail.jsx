@@ -132,23 +132,34 @@ const ProductDetail = () => {
 
   const handleBuyNow = () => {
     const whatsappNumber = '9447210273';
-    const priceDescription = hasDiscount
-      ? `₹${offerPriceFormatted} (Original MRP: ₹${originalPriceFormatted} - ${discountPercentage}% OFF)`
-      : `₹${offerPriceFormatted}`;
+    const productUrl = `${window.location.origin}/product/${product.id}`;
+    const coverImage = (images && images.length > 0 ? images[0] : product.imageUrl) || '';
 
-    const message = `Hello! I'm interested in buying the following product:
+    const messageLines = [
+      "Hello! I'm interested in buying this product from your website:",
+      "",
+      `*Product:* ${product.name}`,
+      `*Category:* ${product.category}`,
+      "",
+      `*Product Website Link:* ${productUrl}`,
+    ];
 
-*Name:* ${product.name}
-*Price:* ${priceDescription}
-*Category:* ${product.category}
+    if (coverImage) {
+      messageLines.push(`*Cover Photo:* ${coverImage}`);
+      messageLines.push("");
+    }
 
-*Features:*
-${features.map(f => `- ${f}`).join('\n')}
+    if (features && features.length > 0) {
+      messageLines.push("*Features:*");
+      features.forEach((f) => {
+        if (f) messageLines.push(`• ${f}`);
+      });
+      messageLines.push("");
+    }
 
-*Product Link & Images:*
-${images.map((img, i) => `Photo ${i + 1}: ${img}`).join('\n')}
+    messageLines.push("Is this item currently available?");
 
-Is this item currently available?`;
+    const message = messageLines.join("\n");
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
 
     window.open(whatsappUrl, '_blank');
