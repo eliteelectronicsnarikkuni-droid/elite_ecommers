@@ -234,7 +234,7 @@ const Admin = () => {
   const loadProducts = async () => {
     setLoading(true);
     try {
-      const res = await getProducts({ forceRefresh: true });
+      const res = await getProducts({ forceRefresh: true, includeHidden: true });
       setProducts(res.products || []);
     } catch (err) {
       console.error('Error fetching products:', err);

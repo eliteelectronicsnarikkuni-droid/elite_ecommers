@@ -66,10 +66,10 @@ const Navbar = () => {
     let isMounted = true;
     const fetchCatalog = async () => {
       try {
-        const res = await getProducts();
+        const res = await getProducts({ forceRefresh: true, includeHidden: false });
         if (isMounted && res.products) {
           // Filter out products hidden by admin so buyers do not see them in search suggestions
-          setCatalog(res.products.filter(p => !p.isHidden));
+          setCatalog(res.products.filter(p => !p.isHidden && !p.is_hidden && !(Array.isArray(p.features) && p.features.some(f => typeof f === 'string' && f.startsWith('__hidden__:')))));
         }
       } catch (err) {
         console.warn('Navbar suggestion catalog load warning:', err);
@@ -210,7 +210,8 @@ const Navbar = () => {
   const matchingProducts = queryClean
     ? catalog
         .filter((p) => {
-          if (p.isHidden) return false;
+          if (p.isHidden === true || p.is_hidden === true) return false;
+          if (Array.isArray(p.features) && p.features.some(f => typeof f === 'string' && f.startsWith('__hidden__:'))) return false;
           const name = (p.name || '').toLowerCase();
           const cat = (p.category || '').toLowerCase();
           const desc = (p.description || '').toLowerCase();

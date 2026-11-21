@@ -32,7 +32,7 @@ const Home = () => {
   const query = searchParams.get('q') || '';
 
   // Synchronously initialize from cache so back navigation renders full height immediately with 0ms delay!
-  const cachedInitial = getCachedProducts();
+  const cachedInitial = getCachedProducts({ includeHidden: false });
   const [products, setProducts] = useState(() => cachedInitial || []);
   const [loading, setLoading] = useState(() => !cachedInitial || cachedInitial.length === 0);
   const [error, setError] = useState(null);
@@ -74,7 +74,7 @@ const Home = () => {
       }
       setError(null);
       try {
-        const result = await getProducts();
+        const result = await getProducts({ forceRefresh: true, includeHidden: false });
         if (isMounted) {
           setProducts(result.products || []);
           if (result.error && (!result.products || result.products.length === 0)) {
@@ -120,7 +120,10 @@ const Home = () => {
     return products
       .filter((product) => {
         // Exclude products hidden by admin so buyers cannot see them
-        if (product.isHidden) {
+        if (product.isHidden === true || product.is_hidden === true) {
+          return false;
+        }
+        if (Array.isArray(product.features) && product.features.some(f => typeof f === 'string' && f.startsWith('__hidden__:'))) {
           return false;
         }
 

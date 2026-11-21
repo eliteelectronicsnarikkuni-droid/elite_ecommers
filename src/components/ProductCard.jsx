@@ -2,6 +2,13 @@ import { Link } from 'react-router-dom';
 import { Package } from 'lucide-react';
 
 const ProductCard = ({ product }) => {
+  if (!product || product.isHidden === true || product.is_hidden === true) {
+    return null;
+  }
+  if (Array.isArray(product.features) && product.features.some(f => typeof f === 'string' && f.startsWith('__hidden__:'))) {
+    return null;
+  }
+
   const imageUrl = (Array.isArray(product.images) && product.images[0]) || 
     product.imageUrl || 
     product.image_url || 

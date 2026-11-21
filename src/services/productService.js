@@ -133,16 +133,14 @@ const normalizeProduct = (row) => {
   }
 
   // Determine visibility status (Default: visible / not hidden)
-  let isHidden = false;
-  if (row.is_hidden !== undefined && row.is_hidden !== null) {
-    isHidden = Boolean(row.is_hidden);
-  } else if (row.is_visible !== undefined && row.is_visible !== null) {
-    isHidden = !Boolean(row.is_visible);
-  } else if (row.isHidden !== undefined && row.isHidden !== null) {
-    isHidden = Boolean(row.isHidden);
-  } else if (hiddenFromFeatures) {
-    isHidden = true;
-  }
+  const isRowHidden = row.is_hidden === true || row.is_hidden === 'true' || row.is_hidden === 1 || row.is_hidden === '1';
+  const isRowExplicitVisibleFalse = row.is_visible === false || row.is_visible === 'false' || row.is_visible === 0;
+  const isHidden = Boolean(
+    hiddenFromFeatures ||
+    isRowHidden ||
+    row.isHidden === true ||
+    isRowExplicitVisibleFalse
+  );
 
   return {
     id: String(row.id),
@@ -162,13 +160,21 @@ const normalizeProduct = (row) => {
 };
 
 // Multi-Tier High Performance Cache
+const CACHE_KEY = 'elite_products_cache_v3';
+
+// Auto-purge any stale caches from previous schema versions
+try {
+  sessionStorage.removeItem('elite_products_cache');
+  sessionStorage.removeItem('elite_products_cache_v2');
+} catch {}
+
 let memoryCache = null; // { products: [...], timestamp: number }
 let inflightPromise = null; // In-flight request deduplication
 const CACHE_TTL = 3 * 60 * 1000; // 3 minutes fresh cache
 
 const getSessionCache = () => {
   try {
-    const raw = sessionStorage.getItem('elite_products_cache');
+    const raw = sessionStorage.getItem(CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (parsed && Array.isArray(parsed.products) && parsed.products.length > 0 && (Date.now() - parsed.timestamp < CACHE_TTL * 3)) {
@@ -181,7 +187,7 @@ const getSessionCache = () => {
 const setSessionCache = (products) => {
   if (!Array.isArray(products) || products.length === 0) return;
   try {
-    sessionStorage.setItem('elite_products_cache', JSON.stringify({
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify({
       products,
       timestamp: Date.now()
     }));
@@ -192,28 +198,48 @@ export const invalidateProductCache = () => {
   memoryCache = null;
   inflightPromise = null;
   try {
+    sessionStorage.removeItem(CACHE_KEY);
     sessionStorage.removeItem('elite_products_cache');
+    sessionStorage.removeItem('elite_products_cache_v2');
   } catch {}
 };
 
-export const getCachedProducts = () => {
+export const getCachedProducts = ({ includeHidden = false } = {}) => {
+  let list = null;
   if (memoryCache && Array.isArray(memoryCache.products) && memoryCache.products.length > 0) {
-    return memoryCache.products;
+    list = memoryCache.products;
+  } else {
+    const sessionCache = getSessionCache();
+    if (sessionCache && Array.isArray(sessionCache.products) && sessionCache.products.length > 0) {
+      memoryCache = sessionCache;
+      list = sessionCache.products;
+    }
   }
-  const sessionCache = getSessionCache();
-  if (sessionCache && Array.isArray(sessionCache.products) && sessionCache.products.length > 0) {
-    memoryCache = sessionCache;
-    return sessionCache.products;
-  }
-  return null;
+  if (!list) return null;
+  if (includeHidden) return list;
+  return list.filter((p) => {
+    if (p.isHidden === true || p.is_hidden === true) return false;
+    if (Array.isArray(p.features) && p.features.some((f) => typeof f === 'string' && f.startsWith('__hidden__:'))) return false;
+    return true;
+  });
 };
 
-export const getProducts = async ({ forceRefresh = false } = {}) => {
+export const getProducts = async ({ forceRefresh = false, includeHidden = false } = {}) => {
+  const filterList = (list) => {
+    if (!Array.isArray(list)) return [];
+    if (includeHidden) return list;
+    return list.filter((p) => {
+      if (p.isHidden === true || p.is_hidden === true) return false;
+      if (Array.isArray(p.features) && p.features.some((f) => typeof f === 'string' && f.startsWith('__hidden__:'))) return false;
+      return true;
+    });
+  };
+
   // If not forcing refresh, return instant cache if available and non-empty
   if (!forceRefresh) {
     if (memoryCache && Array.isArray(memoryCache.products) && memoryCache.products.length > 0 && (Date.now() - memoryCache.timestamp < CACHE_TTL)) {
       return {
-        products: memoryCache.products,
+        products: filterList(memoryCache.products),
         source: 'memory_cache'
       };
     }
@@ -222,7 +248,7 @@ export const getProducts = async ({ forceRefresh = false } = {}) => {
     if (sessionCache && Array.isArray(sessionCache.products) && sessionCache.products.length > 0) {
       memoryCache = sessionCache;
       return {
-        products: sessionCache.products,
+        products: filterList(sessionCache.products),
         source: 'session_cache'
       };
     }
@@ -257,7 +283,7 @@ export const getProducts = async ({ forceRefresh = false } = {}) => {
       if (error) {
         console.warn('Error fetching products from Supabase:', error.message);
         if (memoryCache?.products?.length) {
-          return { products: memoryCache.products, source: 'stale_cache' };
+          return { products: filterList(memoryCache.products), source: 'stale_cache' };
         }
         return {
           products: [],
@@ -273,18 +299,18 @@ export const getProducts = async ({ forceRefresh = false } = {}) => {
       }
 
       return {
-        products: normalized,
+        products: filterList(normalized),
         source: 'supabase'
       };
     } catch (err) {
       console.warn('Network or cold-start issue fetching products:', err.message);
       if (memoryCache?.products?.length) {
-        return { products: memoryCache.products, source: 'stale_cache' };
+        return { products: filterList(memoryCache.products), source: 'stale_cache' };
       }
       const sessionCache = getSessionCache();
       if (sessionCache?.products?.length) {
         memoryCache = sessionCache;
-        return { products: sessionCache.products, source: 'session_cache' };
+        return { products: filterList(sessionCache.products), source: 'session_cache' };
       }
       return {
         products: [],
