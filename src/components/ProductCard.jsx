@@ -55,7 +55,6 @@ const ProductCard = ({ product }) => {
             <span className="no-image-text">No Image</span>
           </div>
         )}
-        <div className="product-category">{product.category}</div>
         {hasDiscount && (
           <div className="product-discount-badge">
             {discountPercentage}% OFF
