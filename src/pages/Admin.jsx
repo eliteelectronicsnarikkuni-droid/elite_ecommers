@@ -885,6 +885,9 @@ const Admin = () => {
     return (
       <div className="admin-login-wrapper">
         <div className="admin-login-card">
+          <div className="admin-login-logo-wrap">
+            <img src="/logo.png" alt="Elite Electronics Logo" className="admin-login-logo" />
+          </div>
           <div className="login-icon-box">
             <Lock size={28} />
           </div>

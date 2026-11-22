@@ -3,7 +3,6 @@ import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-do
 import { getProducts } from '../services/productService';
 import { 
   Search, 
-  Zap, 
   Menu, 
   X, 
   TrendingUp, 
@@ -235,14 +234,12 @@ const Navbar = () => {
     <>
       <nav className="navbar">
         <div className="nav-container">
-          <Link to="/" className="nav-logo" onClick={handleShopClick}>
-            <div className="logo-icon-container">
-              <Zap className="logo-icon-svg" size={20} strokeWidth={2.5} />
-            </div>
-            <div className="logo-text">
-              <span className="logo-text-elite">Elite</span>
-              <span className="logo-text-electronics">Electronics</span>
-            </div>
+          <Link to="/" className="nav-logo" onClick={handleShopClick} aria-label="Elite Electronics Home">
+            <img 
+              src="/logo.png" 
+              alt="Elite Electronics Logo" 
+              className="nav-logo-image" 
+            />
           </Link>
 
           {/* Flipkart-Style Real-time Search Box & Suggestions */}

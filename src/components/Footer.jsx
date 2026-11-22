@@ -38,7 +38,9 @@ const Footer = () => {
       <div className="grand-footer-container">
         {/* Column 1: About */}
         <div className="footer-col">
-          <h3 className="footer-heading">About</h3>
+          <div className="footer-logo-wrap">
+            <img src="/logo.png" alt="Elite Electronics" className="footer-logo-image" />
+          </div>
           <p className="footer-about-text">
             At Elite Electronics, we specialize in high-quality speakers, LED lighting, soldering irons, digital multimeters, torches, and electronic hardware essentials. We curate only reliable, high-performance equipment.
           </p>
