@@ -2734,33 +2734,74 @@
 }
 
 .footer-social-section {
-  margin-top: 1.5rem;
+  margin-top: 1.35rem;
+}
+
+.footer-social-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.footer-social-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 1.15rem;
+  border-radius: 24px;
+  color: #ffffff !important;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
 }
 
 .footer-insta-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.55rem 1.15rem;
-  border-radius: 24px;
   background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
-  color: #ffffff;
-  font-size: 0.875rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-  box-shadow: 0 4px 12px rgba(220, 39, 67, 0.25);
+  box-shadow: 0 4px 12px rgba(220, 39, 67, 0.28);
 }
 
 .footer-insta-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 18px rgba(220, 39, 67, 0.45);
+  filter: brightness(1.05);
+}
+
+.footer-whatsapp-btn {
+  background-color: #25D366;
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.28);
+}
+
+.footer-whatsapp-btn:hover {
+  background-color: #1eb858;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(37, 211, 102, 0.45);
+  filter: brightness(1.05);
+}
+
+.whatsapp-text-link {
+  color: #25D366 !important;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: opacity 0.2s ease;
+}
+
+.whatsapp-text-link:hover {
+  text-decoration: underline;
+  opacity: 0.85;
 }
 
 .insta-text-link {
   color: #ff5483 !important;
   font-weight: 600;
   text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   transition: opacity 0.2s ease;
 }
 
