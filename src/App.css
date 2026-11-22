@@ -49,9 +49,9 @@
 }
 
 .nav-logo-image {
-  height: 58px;
+  height: 68px;
   width: auto;
-  max-width: 180px;
+  max-width: 220px;
   object-fit: contain;
   display: block;
   transition: transform 0.25s ease;
@@ -59,15 +59,15 @@
 
 @media (max-width: 768px) {
   .nav-logo-image {
-    height: 48px;
-    max-width: 140px;
+    height: 54px;
+    max-width: 170px;
   }
 }
 
 @media (max-width: 480px) {
   .nav-logo-image {
-    height: 42px;
-    max-width: 120px;
+    height: 48px;
+    max-width: 150px;
   }
 }
 
@@ -77,9 +77,9 @@
 }
 
 .footer-logo-image {
-  height: 54px;
+  height: 64px;
   width: auto;
-  max-width: 165px;
+  max-width: 195px;
   object-fit: contain;
   display: inline-block;
   background: #ffffff;
@@ -101,9 +101,9 @@
 }
 
 .admin-login-logo {
-  height: 68px;
+  height: 80px;
   width: auto;
-  max-width: 200px;
+  max-width: 240px;
   object-fit: contain;
   display: block;
 }
