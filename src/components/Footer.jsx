@@ -94,12 +94,6 @@ const Footer = () => {
               <a href="#about" onClick={scrollToAbout}>About Us</a>
             </li>
             <li>
-              <Link to="/?q=Speakers">Speakers</Link>
-            </li>
-            <li>
-              <Link to="/?q=LED">LED Lights</Link>
-            </li>
-            <li>
               <a href="#contact">Contact Us</a>
             </li>
           </ul>
