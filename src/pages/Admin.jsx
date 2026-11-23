@@ -904,7 +904,7 @@ const Admin = () => {
     }
   };
 
-  const handleDrop = async (e, targetItem) => {
+  const handleDrop = (e, targetItem) => {
     e.preventDefault();
     setDragOverProductId(null);
     const sourceId = draggedProductId || e.dataTransfer.getData('text/plain');
@@ -917,17 +917,29 @@ const Admin = () => {
 
     if (sourceIndex === -1 || targetIndex === -1 || sourceIndex === targetIndex) return;
 
-    const reordered = [...products];
-    const [movedItem] = reordered.splice(sourceIndex, 1);
-    reordered.splice(targetIndex, 0, movedItem);
+    const movedProduct = products[sourceIndex];
 
-    // Optimistic UI update
-    setProducts(reordered);
+    setConfirmModal({
+      isOpen: true,
+      type: 'reorder_product',
+      title: 'Change Product Position?',
+      message: `Are you sure you want to move "${movedProduct.name}" to position #${targetIndex + 1}${targetIndex === 0 ? ' (Top of Store)' : ''}? This will immediately update the display sequence for store buyers.`,
+      confirmText: `Yes, Move to #${targetIndex + 1}`,
+      confirmVariant: 'primary',
+      onConfirm: async () => {
+        const reordered = [...products];
+        const [movedItem] = reordered.splice(sourceIndex, 1);
+        reordered.splice(targetIndex, 0, movedItem);
 
-    await persistOrder(
-      reordered,
-      `"${movedItem.name}" assigned to position #${targetIndex + 1}${targetIndex === 0 ? ' (Top of Store)' : ''}!`
-    );
+        // Optimistic UI update
+        setProducts(reordered);
+
+        await persistOrder(
+          reordered,
+          `"${movedItem.name}" assigned to position #${targetIndex + 1}${targetIndex === 0 ? ' (Top of Store)' : ''}!`
+        );
+      }
+    });
   };
 
   const handleDragEnd = () => {
@@ -935,57 +947,87 @@ const Admin = () => {
     setDragOverProductId(null);
   };
 
-  // Step Move (Up / Down) Handler for buttons & mobile touch
-  const handleMoveStep = async (item, direction) => {
+  // Step Move (Up / Down) Handler for buttons & mobile touch with confirmation
+  const handleMoveStep = (item, direction) => {
     const globalIndex = products.findIndex((p) => String(p.id) === String(item.id));
     if (globalIndex === -1 || savingOrder) return;
 
     const targetIndex = globalIndex + direction;
     if (targetIndex < 0 || targetIndex >= products.length) return;
 
-    const reordered = [...products];
-    const [movedItem] = reordered.splice(globalIndex, 1);
-    reordered.splice(targetIndex, 0, movedItem);
+    setConfirmModal({
+      isOpen: true,
+      type: 'reorder_product',
+      title: direction < 0 ? 'Move Product Up?' : 'Move Product Down?',
+      message: `Are you sure you want to move "${item.name}" to position #${targetIndex + 1}${targetIndex === 0 ? ' (Top of Store)' : ''}?`,
+      confirmText: `Yes, Move to #${targetIndex + 1}`,
+      confirmVariant: 'primary',
+      onConfirm: async () => {
+        const reordered = [...products];
+        const [movedItem] = reordered.splice(globalIndex, 1);
+        reordered.splice(targetIndex, 0, movedItem);
 
-    setProducts(reordered);
-    await persistOrder(
-      reordered,
-      `"${movedItem.name}" moved to position #${targetIndex + 1}${targetIndex === 0 ? ' (Top of Store)' : ''}!`
-    );
+        setProducts(reordered);
+        await persistOrder(
+          reordered,
+          `"${movedItem.name}" moved to position #${targetIndex + 1}${targetIndex === 0 ? ' (Top of Store)' : ''}!`
+        );
+      }
+    });
   };
 
-  // 1-Click Preset: Newest in Top Order
-  const handleSetNewestOnTop = async () => {
+  // 1-Click Preset: Newest in Top Order with Confirmation
+  const requestSetNewestOnTop = () => {
     if (savingOrder || products.length <= 1) return;
 
-    const sorted = [...products].sort((a, b) => {
-      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      if (aTime && bTime && aTime !== bTime) {
-        return bTime - aTime; // Newest first
-      }
-      return Number(b.id || 0) - Number(a.id || 0);
-    });
+    setConfirmModal({
+      isOpen: true,
+      type: 'newest_on_top',
+      title: 'Set Newest Products on Top?',
+      message: 'Are you sure you want to reorder all products so the newest added items appear at the very top (#1) for store buyers?',
+      confirmText: 'Yes, Put Newest on Top',
+      confirmVariant: 'primary',
+      onConfirm: async () => {
+        const sorted = [...products].sort((a, b) => {
+          const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          if (aTime && bTime && aTime !== bTime) {
+            return bTime - aTime; // Newest first
+          }
+          return Number(b.id || 0) - Number(a.id || 0);
+        });
 
-    setProducts(sorted);
-    await persistOrder(sorted, 'All products reordered: Newest items are now at the top (#1)!');
+        setProducts(sorted);
+        await persistOrder(sorted, 'All products reordered: Newest items are now at the top (#1)!');
+      }
+    });
   };
 
-  // 1-Click Preset: Oldest in Top Order
-  const handleSetOldestOnTop = async () => {
+  // 1-Click Preset: Oldest in Top Order with Confirmation
+  const requestSetOldestOnTop = () => {
     if (savingOrder || products.length <= 1) return;
 
-    const sorted = [...products].sort((a, b) => {
-      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      if (aTime && bTime && aTime !== bTime) {
-        return aTime - bTime; // Oldest first
-      }
-      return Number(a.id || 0) - Number(b.id || 0);
-    });
+    setConfirmModal({
+      isOpen: true,
+      type: 'oldest_on_top',
+      title: 'Set Oldest Products on Top?',
+      message: 'Are you sure you want to reorder all products so the oldest items appear at the very top (#1) for store buyers?',
+      confirmText: 'Yes, Put Oldest on Top',
+      confirmVariant: 'primary',
+      onConfirm: async () => {
+        const sorted = [...products].sort((a, b) => {
+          const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          if (aTime && bTime && aTime !== bTime) {
+            return aTime - bTime; // Oldest first
+          }
+          return Number(a.id || 0) - Number(b.id || 0);
+        });
 
-    setProducts(sorted);
-    await persistOrder(sorted, 'All products reordered: Oldest items are now at the top (#1)!');
+        setProducts(sorted);
+        await persistOrder(sorted, 'All products reordered: Oldest items are now at the top (#1)!');
+      }
+    });
   };
 
   // Persist order updates to Supabase and cache with animated feedback
@@ -1758,7 +1800,7 @@ const Admin = () => {
                 <button
                   type="button"
                   className="order-preset-btn btn-newest-top"
-                  onClick={handleSetNewestOnTop}
+                  onClick={requestSetNewestOnTop}
                   disabled={savingOrder || products.length <= 1}
                   title="1-Click: Reorder all products so newest added items appear at the top (#1)"
                 >
@@ -1767,7 +1809,7 @@ const Admin = () => {
                 <button
                   type="button"
                   className="order-preset-btn btn-oldest-top"
-                  onClick={handleSetOldestOnTop}
+                  onClick={requestSetOldestOnTop}
                   disabled={savingOrder || products.length <= 1}
                   title="1-Click: Reorder all products so oldest items appear at the top (#1)"
                 >
@@ -2050,6 +2092,12 @@ const Admin = () => {
                 <EyeOff size={28} />
               ) : confirmModal.type === 'show_product' ? (
                 <Eye size={28} />
+              ) : confirmModal.type === 'newest_on_top' ? (
+                <Sparkles size={28} />
+              ) : confirmModal.type === 'oldest_on_top' ? (
+                <History size={28} />
+              ) : confirmModal.type === 'reorder_product' ? (
+                <ArrowUpDown size={28} />
               ) : confirmModal.confirmVariant === 'danger' ? (
                 <Trash2 size={28} />
               ) : confirmModal.confirmVariant === 'warning' ? (
@@ -2083,8 +2131,11 @@ const Admin = () => {
               >
                 {confirmModal.type === 'hide_product' && <EyeOff size={16} />}
                 {confirmModal.type === 'show_product' && <Eye size={16} />}
-                {confirmModal.type !== 'hide_product' && confirmModal.type !== 'show_product' && confirmModal.confirmVariant === 'danger' && <Trash2 size={16} />}
-                {confirmModal.type !== 'hide_product' && confirmModal.type !== 'show_product' && confirmModal.confirmVariant === 'primary' && <CheckCircle2 size={16} />}
+                {confirmModal.type === 'newest_on_top' && <Sparkles size={16} />}
+                {confirmModal.type === 'oldest_on_top' && <History size={16} />}
+                {confirmModal.type === 'reorder_product' && <ArrowUpDown size={16} />}
+                {confirmModal.type !== 'hide_product' && confirmModal.type !== 'show_product' && confirmModal.type !== 'newest_on_top' && confirmModal.type !== 'oldest_on_top' && confirmModal.type !== 'reorder_product' && confirmModal.confirmVariant === 'danger' && <Trash2 size={16} />}
+                {confirmModal.type !== 'hide_product' && confirmModal.type !== 'show_product' && confirmModal.type !== 'newest_on_top' && confirmModal.type !== 'oldest_on_top' && confirmModal.type !== 'reorder_product' && confirmModal.confirmVariant === 'primary' && <CheckCircle2 size={16} />}
                 {confirmModal.confirmText}
               </button>
             </div>
