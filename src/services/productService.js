@@ -17,11 +17,12 @@ const normalizeProduct = (row) => {
     }
   }
 
-  // Extract __mrp__:, __images__:, __colors__:, and __hidden__: metadata if stored in features
+  // Extract __mrp__:, __images__:, __colors__:, __hidden__:, and __order__: metadata if stored in features
   const cleanFeatures = [];
   let imagesFromFeatures = [];
   let colorsFromFeatures = [];
   let hiddenFromFeatures = false;
+  let orderFromFeatures = null;
   for (const f of rawFeatures) {
     if (typeof f === 'string' && f.startsWith('__mrp__:')) {
       const parsed = Number(f.replace('__mrp__:', '').trim());
@@ -50,6 +51,11 @@ const normalizeProduct = (row) => {
       const val = f.replace('__hidden__:', '').trim().toLowerCase();
       if (val === 'true' || val === '1') {
         hiddenFromFeatures = true;
+      }
+    } else if (typeof f === 'string' && f.startsWith('__order__:')) {
+      const parsed = Number(f.replace('__order__:', '').trim());
+      if (!isNaN(parsed) && parsed > 0) {
+        orderFromFeatures = parsed;
       }
     } else {
       cleanFeatures.push(f);
@@ -142,6 +148,13 @@ const normalizeProduct = (row) => {
     isRowExplicitVisibleFalse
   );
 
+  let displayOrder = row.display_order ?? row.position ?? orderFromFeatures;
+  if (displayOrder !== null && displayOrder !== undefined && !isNaN(Number(displayOrder))) {
+    displayOrder = Number(displayOrder);
+  } else {
+    displayOrder = null;
+  }
+
   return {
     id: String(row.id),
     name: row.name || '',
@@ -154,18 +167,51 @@ const normalizeProduct = (row) => {
     images: imagesList,
     colors: productColors,
     features: cleanFeatures,
+    _rawFeatures: rawFeatures,
     isHidden: Boolean(isHidden),
+    displayOrder: displayOrder,
     createdAt: row.created_at || row.createdAt || null
   };
 };
 
+/**
+ * Sort products according to the admin-assigned display order:
+ * 1. Explicit displayOrder (1, 2, 3...) comes first
+ * 2. Fallback: newest added items first (createdAt descending, or id descending)
+ */
+export const sortProductsByDisplayOrder = (productList) => {
+  if (!Array.isArray(productList)) return [];
+  return [...productList].sort((a, b) => {
+    const aOrder = a && a.displayOrder !== null && a.displayOrder !== undefined ? Number(a.displayOrder) : null;
+    const bOrder = b && b.displayOrder !== null && b.displayOrder !== undefined ? Number(b.displayOrder) : null;
+
+    if (aOrder !== null && bOrder !== null) {
+      if (aOrder !== bOrder) return aOrder - bOrder;
+    } else if (aOrder !== null) {
+      return -1;
+    } else if (bOrder !== null) {
+      return 1;
+    }
+
+    // Fallback: If neither has explicit displayOrder, order by created_at descending (newest first)
+    const aTime = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bTime = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+    if (aTime && bTime && aTime !== bTime) {
+      return bTime - aTime;
+    }
+
+    return Number(b?.id || 0) - Number(a?.id || 0);
+  });
+};
+
 // Multi-Tier High Performance Cache
-const CACHE_KEY = 'elite_products_cache_v3';
+const CACHE_KEY = 'elite_products_cache_v4';
 
 // Auto-purge any stale caches from previous schema versions
 try {
   sessionStorage.removeItem('elite_products_cache');
   sessionStorage.removeItem('elite_products_cache_v2');
+  sessionStorage.removeItem('elite_products_cache_v3');
 } catch {}
 
 let memoryCache = null; // { products: [...], timestamp: number }
@@ -216,8 +262,9 @@ export const getCachedProducts = ({ includeHidden = false } = {}) => {
     }
   }
   if (!list) return null;
-  if (includeHidden) return list;
-  return list.filter((p) => {
+  const sorted = sortProductsByDisplayOrder(list);
+  if (includeHidden) return sorted;
+  return sorted.filter((p) => {
     if (p.isHidden === true || p.is_hidden === true) return false;
     if (Array.isArray(p.features) && p.features.some((f) => typeof f === 'string' && f.startsWith('__hidden__:'))) return false;
     return true;
@@ -227,8 +274,9 @@ export const getCachedProducts = ({ includeHidden = false } = {}) => {
 export const getProducts = async ({ forceRefresh = false, includeHidden = false } = {}) => {
   const filterList = (list) => {
     if (!Array.isArray(list)) return [];
-    if (includeHidden) return list;
-    return list.filter((p) => {
+    const sorted = sortProductsByDisplayOrder(list);
+    if (includeHidden) return sorted;
+    return sorted.filter((p) => {
       if (p.isHidden === true || p.is_hidden === true) return false;
       if (Array.isArray(p.features) && p.features.some((f) => typeof f === 'string' && f.startsWith('__hidden__:'))) return false;
       return true;
@@ -293,13 +341,14 @@ export const getProducts = async ({ forceRefresh = false, includeHidden = false 
       }
 
       const normalized = (data || []).map(normalizeProduct);
-      if (normalized.length > 0) {
-        memoryCache = { products: normalized, timestamp: Date.now() };
-        setSessionCache(normalized);
+      const sorted = sortProductsByDisplayOrder(normalized);
+      if (sorted.length > 0) {
+        memoryCache = { products: sorted, timestamp: Date.now() };
+        setSessionCache(sorted);
       }
 
       return {
-        products: filterList(normalized),
+        products: filterList(sorted),
         source: 'supabase'
       };
     } catch (err) {
@@ -472,6 +521,9 @@ export const createProduct = async (productData) => {
   if (isHidden) {
     featuresList.push('__hidden__:true');
   }
+  if (productData.displayOrder) {
+    featuresList.push(`__order__:${productData.displayOrder}`);
+  }
 
   const newProduct = {
     name: productData.name,
@@ -548,9 +600,9 @@ export const updateProduct = async (id, productData) => {
   }
   const primaryImage = imagesList[0] || productData.imageUrl || '';
 
-  // Embed __mrp__:, __images__:, __colors__:, and __hidden__: metadata into features list
+  // Embed __mrp__:, __images__:, __colors__:, __hidden__:, and __order__: metadata into features list
   const featuresList = (productData.features || []).filter(
-    (f) => typeof f !== 'string' || (!f.startsWith('__hidden__:') && !f.startsWith('__mrp__:') && !f.startsWith('__images__:') && !f.startsWith('__colors__:'))
+    (f) => typeof f !== 'string' || (!f.startsWith('__hidden__:') && !f.startsWith('__mrp__:') && !f.startsWith('__images__:') && !f.startsWith('__colors__:') && !f.startsWith('__order__:'))
   );
   if (originalPrice && !isNaN(originalPrice) && originalPrice > 0) {
     featuresList.push(`__mrp__:${originalPrice}`);
@@ -564,6 +616,9 @@ export const updateProduct = async (id, productData) => {
   const isHidden = Boolean(productData.isHidden);
   if (isHidden) {
     featuresList.push('__hidden__:true');
+  }
+  if (productData.displayOrder) {
+    featuresList.push(`__order__:${productData.displayOrder}`);
   }
 
   const updatedProduct = {
@@ -685,6 +740,63 @@ export const toggleProductVisibility = async (id, isHidden) => {
 
   invalidateProductCache();
   return normalizeProduct(data);
+};
+
+/**
+ * Reorders products and assigns sequential display positions:
+ * Updates the in-memory cache, session storage, and persists __order__:<position>
+ * metadata to Supabase so the order is immediately visible on the home store.
+ */
+export const updateProductOrder = async (reorderedProducts) => {
+  if (!Array.isArray(reorderedProducts) || reorderedProducts.length === 0) return [];
+
+  // Assign 1-based sequential displayOrder
+  const updatedList = reorderedProducts.map((p, idx) => {
+    const newPosition = idx + 1;
+    const raw = Array.isArray(p._rawFeatures)
+      ? [...p._rawFeatures]
+      : (Array.isArray(p.features) ? [...p.features] : []);
+
+    const newFeatures = raw.filter(
+      (f) => typeof f !== 'string' || !f.startsWith('__order__:')
+    );
+    newFeatures.push(`__order__:${newPosition}`);
+
+    return {
+      ...p,
+      displayOrder: newPosition,
+      _rawFeatures: newFeatures
+    };
+  });
+
+  // Immediately update local caches for zero latency
+  const sorted = sortProductsByDisplayOrder(updatedList);
+  memoryCache = { products: sorted, timestamp: Date.now() };
+  setSessionCache(sorted);
+
+  if (!supabase || !isSupabaseConfigured) {
+    return sorted;
+  }
+
+  // Persist each product's updated features array to Supabase
+  try {
+    const updatePromises = updatedList.map((p) => {
+      const payload = {
+        features: p._rawFeatures
+      };
+      return supabase
+        .from('products')
+        .update(payload)
+        .eq('id', p.id);
+    });
+
+    await Promise.all(updatePromises);
+  } catch (err) {
+    console.error('Failed to update product order in Supabase:', err);
+    throw err;
+  }
+
+  return sorted;
 };
 
 export const deleteProduct = async (id) => {

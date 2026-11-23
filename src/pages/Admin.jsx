@@ -7,7 +7,8 @@ import {
   updateProduct,
   deleteProduct,
   uploadProductImage,
-  toggleProductVisibility
+  toggleProductVisibility,
+  updateProductOrder
 } from '../services/productService';
 import { compressImage, formatFileSize } from '../utils/imageCompressor';
 import {
@@ -38,7 +39,15 @@ import {
   Eye,
   EyeOff,
   KeyRound,
-  Palette
+  Palette,
+  GripVertical,
+  ArrowUpDown,
+  Sparkles,
+  History,
+  ChevronUp,
+  ChevronDown,
+  Check,
+  Loader2
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -70,6 +79,12 @@ const Admin = () => {
   const [editingProductId, setEditingProductId] = useState(null);
   const [visibilityFilter, setVisibilityFilter] = useState('all'); // 'all' | 'visible' | 'hidden'
   const [togglingVisibilityId, setTogglingVisibilityId] = useState(null);
+
+  // Drag-and-Drop & Product Position Ordering State
+  const [draggedProductId, setDraggedProductId] = useState(null);
+  const [dragOverProductId, setDragOverProductId] = useState(null);
+  const [savingOrder, setSavingOrder] = useState(false);
+  const [orderNotice, setOrderNotice] = useState(null); // { type: 'success' | 'error', message: '' }
 
   // Form State
   const [name, setName] = useState('');
@@ -871,6 +886,125 @@ const Admin = () => {
     }
   };
 
+  // -------------------------------------------------------------
+  // Product Position Ordering & Drag-and-Drop Handlers
+  // -------------------------------------------------------------
+
+  const handleDragStart = (e, item) => {
+    setDraggedProductId(item.id);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(item.id));
+  };
+
+  const handleDragOver = (e, item) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverProductId !== item.id) {
+      setDragOverProductId(item.id);
+    }
+  };
+
+  const handleDrop = async (e, targetItem) => {
+    e.preventDefault();
+    setDragOverProductId(null);
+    const sourceId = draggedProductId || e.dataTransfer.getData('text/plain');
+    setDraggedProductId(null);
+
+    if (!sourceId || sourceId === targetItem.id) return;
+
+    const sourceIndex = products.findIndex((p) => String(p.id) === String(sourceId));
+    const targetIndex = products.findIndex((p) => String(p.id) === String(targetItem.id));
+
+    if (sourceIndex === -1 || targetIndex === -1 || sourceIndex === targetIndex) return;
+
+    const reordered = [...products];
+    const [movedItem] = reordered.splice(sourceIndex, 1);
+    reordered.splice(targetIndex, 0, movedItem);
+
+    // Optimistic UI update
+    setProducts(reordered);
+
+    await persistOrder(
+      reordered,
+      `"${movedItem.name}" assigned to position #${targetIndex + 1}${targetIndex === 0 ? ' (Top of Store)' : ''}!`
+    );
+  };
+
+  const handleDragEnd = () => {
+    setDraggedProductId(null);
+    setDragOverProductId(null);
+  };
+
+  // Step Move (Up / Down) Handler for buttons & mobile touch
+  const handleMoveStep = async (item, direction) => {
+    const globalIndex = products.findIndex((p) => String(p.id) === String(item.id));
+    if (globalIndex === -1 || savingOrder) return;
+
+    const targetIndex = globalIndex + direction;
+    if (targetIndex < 0 || targetIndex >= products.length) return;
+
+    const reordered = [...products];
+    const [movedItem] = reordered.splice(globalIndex, 1);
+    reordered.splice(targetIndex, 0, movedItem);
+
+    setProducts(reordered);
+    await persistOrder(
+      reordered,
+      `"${movedItem.name}" moved to position #${targetIndex + 1}${targetIndex === 0 ? ' (Top of Store)' : ''}!`
+    );
+  };
+
+  // 1-Click Preset: Newest in Top Order
+  const handleSetNewestOnTop = async () => {
+    if (savingOrder || products.length <= 1) return;
+
+    const sorted = [...products].sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      if (aTime && bTime && aTime !== bTime) {
+        return bTime - aTime; // Newest first
+      }
+      return Number(b.id || 0) - Number(a.id || 0);
+    });
+
+    setProducts(sorted);
+    await persistOrder(sorted, 'All products reordered: Newest items are now at the top (#1)!');
+  };
+
+  // 1-Click Preset: Oldest in Top Order
+  const handleSetOldestOnTop = async () => {
+    if (savingOrder || products.length <= 1) return;
+
+    const sorted = [...products].sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      if (aTime && bTime && aTime !== bTime) {
+        return aTime - bTime; // Oldest first
+      }
+      return Number(a.id || 0) - Number(b.id || 0);
+    });
+
+    setProducts(sorted);
+    await persistOrder(sorted, 'All products reordered: Oldest items are now at the top (#1)!');
+  };
+
+  // Persist order updates to Supabase and cache with animated feedback
+  const persistOrder = async (orderedList, successMsg) => {
+    setSavingOrder(true);
+    try {
+      const updated = await updateProductOrder(orderedList);
+      setProducts(updated);
+      setOrderNotice({ type: 'success', message: successMsg });
+      setTimeout(() => setOrderNotice(null), 4500);
+    } catch (err) {
+      console.error('Error saving product order:', err);
+      setOrderNotice({ type: 'error', message: 'Failed to save product order to database.' });
+      setTimeout(() => setOrderNotice(null), 5000);
+    } finally {
+      setSavingOrder(false);
+    }
+  };
+
   // Checking initial Supabase Auth session
   if (checkingAuth) {
     return (
@@ -1596,6 +1730,53 @@ const Admin = () => {
             </div>
           </div>
 
+          {/* Product Position & Order Control Bar */}
+          <div className="admin-order-controls-bar">
+            <div className="order-controls-left">
+              <div className="order-controls-badge">
+                <ArrowUpDown size={14} />
+                <span>Store Position Order</span>
+              </div>
+              <span className="order-controls-hint">
+                Drag rows with <GripVertical size={13} style={{ display: 'inline', verticalAlign: '-2px' }} /> or use arrows to set order. Top (#1) item shows first in store.
+              </span>
+            </div>
+
+            <div className="order-controls-right">
+              {savingOrder ? (
+                <span className="order-status-pill pill-saving">
+                  <Loader2 size={13} className="spin-icon" /> Saving position...
+                </span>
+              ) : orderNotice ? (
+                <span className={`order-status-pill ${orderNotice.type === 'success' ? 'pill-success' : 'pill-error'}`}>
+                  {orderNotice.type === 'success' ? <Check size={13} /> : <AlertCircle size={13} />}
+                  {orderNotice.message}
+                </span>
+              ) : null}
+
+              <div className="order-preset-buttons">
+                <button
+                  type="button"
+                  className="order-preset-btn btn-newest-top"
+                  onClick={handleSetNewestOnTop}
+                  disabled={savingOrder || products.length <= 1}
+                  title="1-Click: Reorder all products so newest added items appear at the top (#1)"
+                >
+                  <Sparkles size={14} /> Newest on Top
+                </button>
+                <button
+                  type="button"
+                  className="order-preset-btn btn-oldest-top"
+                  onClick={handleSetOldestOnTop}
+                  disabled={savingOrder || products.length <= 1}
+                  title="1-Click: Reorder all products so oldest items appear at the top (#1)"
+                >
+                  <History size={14} /> Oldest on Top
+                </button>
+              </div>
+            </div>
+          </div>
+
           {loading ? (
             <div className="loading-container">
               <div className="spinner"></div>
@@ -1608,6 +1789,7 @@ const Admin = () => {
               <table className="admin-table">
                 <thead>
                   <tr>
+                    <th className="th-rank-col">Position</th>
                     <th>Item</th>
                     <th>Category</th>
                     <th>Pricing</th>
@@ -1624,6 +1806,8 @@ const Admin = () => {
                       return true;
                     })
                     .map((p) => {
+                    const globalIndex = products.findIndex((item) => String(item.id) === String(p.id));
+                    const isTopProduct = globalIndex === 0;
                     const priceFormatted = Number(p.price || 0).toLocaleString('en-IN', {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2
@@ -1648,11 +1832,69 @@ const Admin = () => {
                       })
                       : null;
 
+                    const isBeingDragged = draggedProductId === p.id;
+                    const isDragOver = dragOverProductId === p.id;
+
                     return (
                       <tr 
                         key={p.id} 
-                        className={`${editingProductId === p.id ? 'row-editing' : ''} ${p.isHidden ? 'row-hidden' : ''}`}
+                        draggable={!savingOrder}
+                        onDragStart={(e) => handleDragStart(e, p)}
+                        onDragOver={(e) => handleDragOver(e, p)}
+                        onDrop={(e) => handleDrop(e, p)}
+                        onDragEnd={handleDragEnd}
+                        className={`
+                          ${editingProductId === p.id ? 'row-editing' : ''} 
+                          ${p.isHidden ? 'row-hidden' : ''}
+                          ${isBeingDragged ? 'row-is-dragging' : ''}
+                          ${isDragOver ? 'row-drag-target' : ''}
+                        `.trim()}
                       >
+                        <td className="table-rank-cell" data-label="Position">
+                          <div className="rank-control-group">
+                            <div
+                              className="drag-grip-handle"
+                              title="Click and drag to reorder product position"
+                              aria-label="Drag to reorder"
+                            >
+                              <GripVertical size={16} />
+                            </div>
+                            <span 
+                              className={`rank-number-badge ${isTopProduct ? 'rank-top-badge' : ''}`}
+                              title={isTopProduct ? 'Top product (#1) — Appears first to buyers on the store!' : `Position #${globalIndex + 1} in store`}
+                            >
+                              {isTopProduct ? '★ #1' : `#${globalIndex + 1}`}
+                            </span>
+                            <div className="rank-arrows">
+                              <button
+                                type="button"
+                                className="rank-arrow-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMoveStep(p, -1);
+                                }}
+                                disabled={globalIndex === 0 || savingOrder}
+                                title="Move Up 1 position"
+                                aria-label="Move Up"
+                              >
+                                <ChevronUp size={13} />
+                              </button>
+                              <button
+                                type="button"
+                                className="rank-arrow-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMoveStep(p, 1);
+                                }}
+                                disabled={globalIndex === products.length - 1 || savingOrder}
+                                title="Move Down 1 position"
+                                aria-label="Move Down"
+                              >
+                                <ChevronDown size={13} />
+                              </button>
+                            </div>
+                          </div>
+                        </td>
                         <td className="product-cell" data-label="Item">
                           <div className="table-thumb-wrap">
                             {p.imageUrl ? (
