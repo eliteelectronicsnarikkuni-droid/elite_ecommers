@@ -79,6 +79,7 @@ const ProductCard = ({ product, layout = 'grid' }) => {
             <div className="product-list-price">₹{priceFormatted}</div>
             {hasDiscount && (
               <div className="product-list-original-row">
+                <span className="product-list-mrp-label">M.R.P:</span>
                 <span className="product-list-original-price">₹{originalFormatted}</span>
                 <span className="card-discount-tag">{discountPercentage}% OFF</span>
               </div>
