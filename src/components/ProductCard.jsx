@@ -102,7 +102,7 @@ const ProductCard = ({ product, layout = 'grid' }) => {
     );
   }
 
-  // 2. Standard Grid Layout (For Homepage: 2 products per row)
+  // 2. Standard Grid Layout (For Homepage Catalog)
   return (
     <Link 
       to={`/product/${product.id}`} 
@@ -123,11 +123,6 @@ const ProductCard = ({ product, layout = 'grid' }) => {
           <div className="product-no-image-placeholder">
             <Package size={38} className="no-image-icon" />
             <span className="no-image-text">No Image</span>
-          </div>
-        )}
-        {hasDiscount && (
-          <div className="product-discount-badge">
-            {discountPercentage}% OFF
           </div>
         )}
       </div>
