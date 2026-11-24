@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { Package } from 'lucide-react';
+import { Package, ChevronRight } from 'lucide-react';
 
-const ProductCard = ({ product }) => {
+const ProductCard = ({ product, layout = 'grid' }) => {
   if (!product || product.isHidden === true || product.is_hidden === true) {
     return null;
   }
@@ -30,15 +30,84 @@ const ProductCard = ({ product }) => {
       })
     : null;
 
+  const handleClick = () => {
+    try {
+      sessionStorage.setItem('home_scroll_y', String(window.scrollY || window.pageYOffset || 0));
+    } catch {}
+  };
+
+  // 1. Amazon-Style List Row Layout (For Search Results: 1 product per row)
+  if (layout === 'list') {
+    return (
+      <Link 
+        to={`/product/${product.id}`} 
+        className="product-card-list"
+        onClick={handleClick}
+        aria-label={`View details for ${product.name}`}
+      >
+        <div className="product-list-image-container">
+          {imageUrl ? (
+            <img 
+              src={imageUrl} 
+              alt={product.name} 
+              className="product-list-image" 
+              loading="lazy" 
+              decoding="async" 
+            />
+          ) : (
+            <div className="product-no-image-placeholder">
+              <Package size={34} className="no-image-icon" />
+              <span className="no-image-text">No Image</span>
+            </div>
+          )}
+          {hasDiscount && (
+            <div className="product-discount-badge list-discount-badge">
+              {discountPercentage}% OFF
+            </div>
+          )}
+        </div>
+
+        <div className="product-list-info">
+          <div className="product-list-header">
+            {product.category && (
+              <span className="product-list-category">{product.category}</span>
+            )}
+            <h3 className="product-list-name">{product.name}</h3>
+          </div>
+
+          <div className="product-list-pricing-wrap">
+            <div className="product-list-price">₹{priceFormatted}</div>
+            {hasDiscount && (
+              <div className="product-list-original-row">
+                <span className="product-list-original-price">₹{originalFormatted}</span>
+                <span className="card-discount-tag">{discountPercentage}% OFF</span>
+              </div>
+            )}
+          </div>
+
+          {product.description && (
+            <p className="product-list-desc">
+              {product.description}
+            </p>
+          )}
+
+          <div className="product-list-footer">
+            <span className="view-details-btn list-view-btn">
+              View Details <ChevronRight size={14} />
+            </span>
+          </div>
+        </div>
+      </Link>
+    );
+  }
+
+  // 2. Standard Grid Layout (For Homepage: 2 products per row)
   return (
     <Link 
       to={`/product/${product.id}`} 
       className="product-card"
-      onClick={() => {
-        try {
-          sessionStorage.setItem('home_scroll_y', String(window.scrollY || window.pageYOffset || 0));
-        } catch {}
-      }}
+      onClick={handleClick}
+      aria-label={`View details for ${product.name}`}
     >
       <div className="product-image-container">
         {imageUrl ? (

@@ -257,30 +257,54 @@ const Home = () => {
         )}
 
         {loading ? (
-          <div className="products-grid">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="skeleton-product-card">
-                <div className="skeleton-thumb shimmer"></div>
-                <div className="skeleton-body">
-                  <div className="skeleton-line shimmer skeleton-cat"></div>
-                  <div className="skeleton-line shimmer skeleton-title"></div>
-                  <div className="skeleton-line shimmer skeleton-price"></div>
-                  <div className="skeleton-btn shimmer"></div>
+          isSearching ? (
+            <div className="search-products-list">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="skeleton-search-card">
+                  <div className="skeleton-search-thumb shimmer"></div>
+                  <div className="skeleton-search-body">
+                    <div className="skeleton-line shimmer skeleton-cat"></div>
+                    <div className="skeleton-line shimmer skeleton-title"></div>
+                    <div className="skeleton-line shimmer skeleton-price"></div>
+                    <div className="skeleton-btn shimmer"></div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="products-grid homepage-products-grid">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="skeleton-product-card">
+                  <div className="skeleton-thumb shimmer"></div>
+                  <div className="skeleton-body">
+                    <div className="skeleton-line shimmer skeleton-cat"></div>
+                    <div className="skeleton-line shimmer skeleton-title"></div>
+                    <div className="skeleton-line shimmer skeleton-price"></div>
+                    <div className="skeleton-btn shimmer"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
         ) : error ? (
           <div className="no-results" style={{ textAlign: 'center', padding: '4rem' }}>
             <h3>Failed to load products</h3>
             <p style={{ color: 'var(--color-text-light)', marginTop: '0.5rem' }}>{error}</p>
           </div>
         ) : filteredProducts.length > 0 ? (
-          <div className="products-grid">
-            {filteredProducts.map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          isSearching ? (
+            <div className="search-products-list">
+              {filteredProducts.map(product => (
+                <ProductCard key={product.id} product={product} layout="list" />
+              ))}
+            </div>
+          ) : (
+            <div className="products-grid homepage-products-grid">
+              {filteredProducts.map(product => (
+                <ProductCard key={product.id} product={product} layout="grid" />
+              ))}
+            </div>
+          )
         ) : (
           <div className="filter-empty-state">
             <div className="empty-filter-icon-circle">
