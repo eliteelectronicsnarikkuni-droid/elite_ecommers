@@ -60,11 +60,6 @@ const ProductCard = ({ product, layout = 'grid' }) => {
               <span className="no-image-text">No Image</span>
             </div>
           )}
-          {hasDiscount && (
-            <div className="product-discount-badge list-discount-badge">
-              {discountPercentage}% OFF
-            </div>
-          )}
         </div>
 
         <div className="product-list-info">
