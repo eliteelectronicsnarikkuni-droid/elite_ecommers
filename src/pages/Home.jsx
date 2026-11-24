@@ -180,25 +180,6 @@ const Home = () => {
     setSelectedPriceRange('custom');
   };
 
-  const handleClearPriceFilter = () => {
-    setSelectedPriceRange('all');
-    setCustomMinPrice('');
-    setCustomMaxPrice('');
-    setAppliedCustomPrice({ min: '', max: '' });
-  };
-
-  const getPriceFilterLabel = () => {
-    if (selectedPriceRange === 'custom') {
-      const min = appliedCustomPrice.min;
-      const max = appliedCustomPrice.max;
-      if (min && max) return `₹${Number(min).toLocaleString('en-IN')} - ₹${Number(max).toLocaleString('en-IN')}`;
-      if (min) return `Over ₹${Number(min).toLocaleString('en-IN')}`;
-      if (max) return `Under ₹${Number(max).toLocaleString('en-IN')}`;
-      return 'Custom Price';
-    }
-    return PRICE_RANGES.find(r => r.id === selectedPriceRange)?.label;
-  };
-
   // Combined search, price filter & sorting
   const filteredProducts = useMemo(() => {
     const queryClean = query.trim().toLowerCase();
@@ -418,9 +399,6 @@ const Home = () => {
                     <div className="mobile-filter-header-left">
                       <Filter size={17} className="sidebar-filter-icon" />
                       <h3>Filters</h3>
-                      {activeFiltersCount > 0 && (
-                        <span className="mobile-filter-active-pill">{activeFiltersCount} active</span>
-                      )}
                     </div>
                     <div className="mobile-filter-header-right">
                       {activeFiltersCount > 0 && (
@@ -547,58 +525,12 @@ const Home = () => {
                 </div>
               </div>
 
-              {/* DESKTOP SEARCH RESULTS TOPBAR (Results Count & Active Filters on Desktop) */}
+              {/* DESKTOP SEARCH RESULTS TOPBAR (Results Count on Desktop) */}
               {!loading && (
                 <div className="desktop-search-results-topbar">
                   <span className="products-count-label">
                     Found <strong>{filteredProducts.length}</strong> product{filteredProducts.length === 1 ? '' : 's'}
                   </span>
-                  {activeFiltersCount > 0 && (
-                    <div className="desktop-search-active-chips">
-                      <span className="active-tags-title">Active Filters:</span>
-                      {selectedPriceRange !== 'all' && (
-                        <span className="active-filter-chip">
-                          Price: {getPriceFilterLabel()}
-                          <button type="button" onClick={handleClearPriceFilter} title="Remove price filter">
-                            <X size={12} />
-                          </button>
-                        </span>
-                      )}
-                      {selectedSort !== 'featured' && (
-                        <span className="active-filter-chip">
-                          Sort: {SORT_OPTIONS.find(s => s.id === selectedSort)?.label}
-                          <button type="button" onClick={() => setSelectedSort('featured')} title="Reset sorting">
-                            <X size={12} />
-                          </button>
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* MOBILE & TABLET ACTIVE FILTER TAGS PILLS (Hidden on desktop) */}
-              {!loading && activeFiltersCount > 0 && (
-                <div className="active-filter-tags-row mobile-tablet-filter-chips">
-                  <span className="active-tags-title">Active:</span>
-
-                  {selectedPriceRange !== 'all' && (
-                    <span className="active-filter-chip">
-                      Price: {getPriceFilterLabel()}
-                      <button type="button" onClick={handleClearPriceFilter} title="Remove price filter">
-                        <X size={12} />
-                      </button>
-                    </span>
-                  )}
-
-                  {selectedSort !== 'featured' && (
-                    <span className="active-filter-chip">
-                      Sort: {SORT_OPTIONS.find(s => s.id === selectedSort)?.label}
-                      <button type="button" onClick={() => setSelectedSort('featured')} title="Reset sorting">
-                        <X size={12} />
-                      </button>
-                    </span>
-                  )}
                 </div>
               )}
 
