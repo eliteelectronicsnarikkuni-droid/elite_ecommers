@@ -180,90 +180,225 @@ const Home = () => {
   return (
     <div className="home-container">
       <main className="products-section">
-        {/* CONTROLS TOOLBAR: Price & Sort Filters - ONLY SHOWN WHEN SEARCHING */}
-        {!loading && isSearching && (
-          <div className="filter-controls-toolbar">
-            <div className="filter-toolbar-left">
-              <span className="products-count-label">
-                Found <strong>{filteredProducts.length}</strong> product{filteredProducts.length === 1 ? '' : 's'}
-              </span>
-            </div>
+        {isSearching ? (
+          <div className="search-page-layout">
+            {/* DESKTOP AMAZON FILTER SIDEBAR (Visible only on desktop > 1024px) */}
+            {!loading && (
+              <aside className="desktop-amazon-filter-sidebar" aria-label="Filters">
+                <div className="filter-sidebar-header">
+                  <div className="filter-sidebar-title">
+                    <Filter size={16} className="sidebar-filter-icon" />
+                    <span>Filters</span>
+                  </div>
+                  {(selectedPriceRange !== 'all' || selectedSort !== 'featured') && (
+                    <button
+                      type="button"
+                      className="filter-sidebar-clear-btn"
+                      onClick={handleResetFilters}
+                      title="Clear all filters"
+                    >
+                      Clear all
+                    </button>
+                  )}
+                </div>
 
-            <div className="filter-toolbar-right">
-              {/* Quick Price Range Filter */}
-              <div className="filter-select-container">
-                <IndianRupee size={14} className="filter-select-icon" />
-                <select
-                  value={selectedPriceRange}
-                  onChange={(e) => setSelectedPriceRange(e.target.value)}
-                  className="filter-dropdown-select"
-                  aria-label="Filter by price range"
-                >
-                  {PRICE_RANGES.map((r) => (
-                    <option key={r.id} value={r.id}>{r.label}</option>
-                  ))}
-                </select>
-              </div>
+                {/* Price Section */}
+                <div className="filter-sidebar-section">
+                  <h4 className="filter-sidebar-heading">Price</h4>
+                  <ul className="filter-sidebar-list">
+                    {PRICE_RANGES.map((range) => {
+                      const isSelected = selectedPriceRange === range.id;
+                      return (
+                        <li key={range.id}>
+                          <button
+                            type="button"
+                            className={`filter-sidebar-item-btn ${isSelected ? 'selected' : ''}`}
+                            onClick={() => setSelectedPriceRange(range.id)}
+                          >
+                            <span className={`filter-sidebar-radio ${isSelected ? 'checked' : ''}`}></span>
+                            <span className="filter-sidebar-label">{range.label}</span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
 
-              {/* Quick Sort Options */}
-              <div className="filter-select-container sort-search-container">
-                <ArrowUpDown size={14} className="filter-select-icon" />
-                <select
-                  value={selectedSort}
-                  onChange={(e) => setSelectedSort(e.target.value)}
-                  className="filter-dropdown-select"
-                  aria-label="Sort searched products"
-                >
-                  {SORT_OPTIONS.map((s) => (
-                    <option key={s.id} value={s.id}>{s.label}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-        )}
+                {/* Sort By Section */}
+                <div className="filter-sidebar-section">
+                  <h4 className="filter-sidebar-heading">Sort By</h4>
+                  <ul className="filter-sidebar-list">
+                    {SORT_OPTIONS.map((opt) => {
+                      const isSelected = selectedSort === opt.id;
+                      return (
+                        <li key={opt.id}>
+                          <button
+                            type="button"
+                            className={`filter-sidebar-item-btn ${isSelected ? 'selected' : ''}`}
+                            onClick={() => setSelectedSort(opt.id)}
+                          >
+                            <span className={`filter-sidebar-radio ${isSelected ? 'checked' : ''}`}></span>
+                            <span className="filter-sidebar-label">{opt.label}</span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
 
-        {/* ACTIVE FILTER TAGS PILLS - ONLY SHOWN WHEN SEARCHING */}
-        {!loading && isSearching && (selectedPriceRange !== 'all' || selectedSort !== 'featured') && (
-          <div className="active-filter-tags-row">
-            <span className="active-tags-title">Active Filters:</span>
-
-            {selectedPriceRange !== 'all' && (
-              <span className="active-filter-chip">
-                Price: {PRICE_RANGES.find(r => r.id === selectedPriceRange)?.label}
-                <button type="button" onClick={() => setSelectedPriceRange('all')} title="Remove price filter">
-                  <X size={12} />
-                </button>
-              </span>
-            )}
-
-            {selectedSort !== 'featured' && (
-              <span className="active-filter-chip">
-                Sort: {SORT_OPTIONS.find(s => s.id === selectedSort)?.label}
-                <button type="button" onClick={() => setSelectedSort('featured')} title="Reset sorting">
-                  <X size={12} />
-                </button>
-              </span>
-            )}
-          </div>
-        )}
-
-        {loading ? (
-          isSearching ? (
-            <div className="search-products-list">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="skeleton-search-card">
-                  <div className="skeleton-search-thumb shimmer"></div>
-                  <div className="skeleton-search-body">
-                    <div className="skeleton-line shimmer skeleton-cat"></div>
-                    <div className="skeleton-line shimmer skeleton-title"></div>
-                    <div className="skeleton-line shimmer skeleton-price"></div>
-                    <div className="skeleton-btn shimmer"></div>
+                {/* Amazon Delivery Perk */}
+                <div className="filter-sidebar-section">
+                  <h4 className="filter-sidebar-heading">Delivery</h4>
+                  <div className="filter-sidebar-delivery-perk">
+                    <span className="delivery-check-mark">✓</span>
+                    <span className="delivery-perk-text">Eligible for <strong>FREE Delivery</strong></span>
                   </div>
                 </div>
-              ))}
+              </aside>
+            )}
+
+            {/* MAIN SEARCH RESULTS COLUMN */}
+            <div className="search-layout-main">
+              {/* MOBILE & TABLET HORIZONTAL TOOLBAR (Existing style, hidden on desktop) */}
+              {!loading && (
+                <div className="filter-controls-toolbar mobile-tablet-filter-toolbar">
+                  <div className="filter-toolbar-left">
+                    <span className="products-count-label">
+                      Found <strong>{filteredProducts.length}</strong> product{filteredProducts.length === 1 ? '' : 's'}
+                    </span>
+                  </div>
+
+                  <div className="filter-toolbar-right">
+                    {/* Quick Price Range Filter */}
+                    <div className="filter-select-container">
+                      <IndianRupee size={14} className="filter-select-icon" />
+                      <select
+                        value={selectedPriceRange}
+                        onChange={(e) => setSelectedPriceRange(e.target.value)}
+                        className="filter-dropdown-select"
+                        aria-label="Filter by price range"
+                      >
+                        {PRICE_RANGES.map((r) => (
+                          <option key={r.id} value={r.id}>{r.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Quick Sort Options */}
+                    <div className="filter-select-container sort-search-container">
+                      <ArrowUpDown size={14} className="filter-select-icon" />
+                      <select
+                        value={selectedSort}
+                        onChange={(e) => setSelectedSort(e.target.value)}
+                        className="filter-dropdown-select"
+                        aria-label="Sort searched products"
+                      >
+                        {SORT_OPTIONS.map((s) => (
+                          <option key={s.id} value={s.id}>{s.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* DESKTOP SEARCH RESULTS TOPBAR (Results Count & Active Filters on Desktop) */}
+              {!loading && (
+                <div className="desktop-search-results-topbar">
+                  <span className="products-count-label">
+                    Found <strong>{filteredProducts.length}</strong> product{filteredProducts.length === 1 ? '' : 's'}
+                  </span>
+                  {(selectedPriceRange !== 'all' || selectedSort !== 'featured') && (
+                    <div className="desktop-search-active-chips">
+                      <span className="active-tags-title">Active Filters:</span>
+                      {selectedPriceRange !== 'all' && (
+                        <span className="active-filter-chip">
+                          Price: {PRICE_RANGES.find(r => r.id === selectedPriceRange)?.label}
+                          <button type="button" onClick={() => setSelectedPriceRange('all')} title="Remove price filter">
+                            <X size={12} />
+                          </button>
+                        </span>
+                      )}
+                      {selectedSort !== 'featured' && (
+                        <span className="active-filter-chip">
+                          Sort: {SORT_OPTIONS.find(s => s.id === selectedSort)?.label}
+                          <button type="button" onClick={() => setSelectedSort('featured')} title="Reset sorting">
+                            <X size={12} />
+                          </button>
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* MOBILE & TABLET ACTIVE FILTER TAGS PILLS (Existing style, hidden on desktop) */}
+              {!loading && (selectedPriceRange !== 'all' || selectedSort !== 'featured') && (
+                <div className="active-filter-tags-row mobile-tablet-filter-chips">
+                  <span className="active-tags-title">Active Filters:</span>
+
+                  {selectedPriceRange !== 'all' && (
+                    <span className="active-filter-chip">
+                      Price: {PRICE_RANGES.find(r => r.id === selectedPriceRange)?.label}
+                      <button type="button" onClick={() => setSelectedPriceRange('all')} title="Remove price filter">
+                        <X size={12} />
+                      </button>
+                    </span>
+                  )}
+
+                  {selectedSort !== 'featured' && (
+                    <span className="active-filter-chip">
+                      Sort: {SORT_OPTIONS.find(s => s.id === selectedSort)?.label}
+                      <button type="button" onClick={() => setSelectedSort('featured')} title="Reset sorting">
+                        <X size={12} />
+                      </button>
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* SEARCH RESULTS PRODUCT LIST / SKELETON */}
+              {loading ? (
+                <div className="search-products-list">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="skeleton-search-card">
+                      <div className="skeleton-search-thumb shimmer"></div>
+                      <div className="skeleton-search-body">
+                        <div className="skeleton-line shimmer skeleton-cat"></div>
+                        <div className="skeleton-line shimmer skeleton-title"></div>
+                        <div className="skeleton-line shimmer skeleton-price"></div>
+                        <div className="skeleton-btn shimmer"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : filteredProducts.length > 0 ? (
+                <div className="search-products-list">
+                  {filteredProducts.map(product => (
+                    <ProductCard key={product.id} product={product} layout="list" />
+                  ))}
+                </div>
+              ) : (
+                <div className="filter-empty-state">
+                  <div className="empty-filter-icon-circle">
+                    <Filter size={32} />
+                  </div>
+                  <h3>No products found</h3>
+                  <p>No products match your search or price filter.</p>
+                  <button 
+                    type="button" 
+                    className="clear-all-empty-btn" 
+                    onClick={handleResetFilters}
+                  >
+                    <RotateCcw size={15} /> Clear All Filters
+                  </button>
+                </div>
+              )}
             </div>
-          ) : (
+          </div>
+        ) : (
+          /* HOMEPAGE CATALOG (When no active search query) */
+          loading ? (
             <div className="products-grid homepage-products-grid">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="skeleton-product-card">
@@ -277,41 +412,26 @@ const Home = () => {
                 </div>
               ))}
             </div>
-          )
-        ) : error ? (
-          <div className="no-results" style={{ textAlign: 'center', padding: '4rem' }}>
-            <h3>Failed to load products</h3>
-            <p style={{ color: 'var(--color-text-light)', marginTop: '0.5rem' }}>{error}</p>
-          </div>
-        ) : filteredProducts.length > 0 ? (
-          isSearching ? (
-            <div className="search-products-list">
-              {filteredProducts.map(product => (
-                <ProductCard key={product.id} product={product} layout="list" />
-              ))}
+          ) : error ? (
+            <div className="no-results" style={{ textAlign: 'center', padding: '4rem' }}>
+              <h3>Failed to load products</h3>
+              <p style={{ color: 'var(--color-text-light)', marginTop: '0.5rem' }}>{error}</p>
             </div>
-          ) : (
+          ) : filteredProducts.length > 0 ? (
             <div className="products-grid homepage-products-grid">
               {filteredProducts.map(product => (
                 <ProductCard key={product.id} product={product} layout="grid" />
               ))}
             </div>
-          )
-        ) : (
-          <div className="filter-empty-state">
-            <div className="empty-filter-icon-circle">
-              <Filter size={32} />
+          ) : (
+            <div className="filter-empty-state">
+              <div className="empty-filter-icon-circle">
+                <Sparkles size={32} />
+              </div>
+              <h3>No products available</h3>
+              <p>Check back later for new arrivals.</p>
             </div>
-            <h3>No products found</h3>
-            <p>No products match your search or price filter.</p>
-            <button 
-              type="button" 
-              className="clear-all-empty-btn" 
-              onClick={handleResetFilters}
-            >
-              <RotateCcw size={15} /> Clear All Filters
-            </button>
-          </div>
+          )
         )}
       </main>
     </div>
