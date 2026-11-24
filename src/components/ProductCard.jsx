@@ -112,7 +112,6 @@ const ProductCard = ({ product, layout = 'grid' }) => {
                         e.stopPropagation();
                         setSelectedColorIdx(idx);
                       }}
-                      onMouseEnter={() => setSelectedColorIdx(idx)}
                       title={c.name || `Color ${idx + 1}`}
                       aria-label={`Select color ${c.name || idx + 1}`}
                     >
@@ -221,7 +220,6 @@ const ProductCard = ({ product, layout = 'grid' }) => {
                       e.stopPropagation();
                       setSelectedColorIdx(idx);
                     }}
-                    onMouseEnter={() => setSelectedColorIdx(idx)}
                     title={c.name || `Color ${idx + 1}`}
                     aria-label={`Select color ${c.name || idx + 1}`}
                   >
