@@ -132,6 +132,15 @@ const Home = () => {
     }
   }, [isSearching]);
 
+  // Clears only filters (preserves the search query and stays on search page)
+  const handleClearFiltersOnly = () => {
+    setSelectedPriceRange('all');
+    setSelectedSort('featured');
+    setCustomMinPrice('');
+    setCustomMaxPrice('');
+    setAppliedCustomPrice({ min: '', max: '' });
+  };
+
   const handleResetFilters = () => {
     setSelectedPriceRange('all');
     setSelectedSort('featured');
@@ -524,7 +533,7 @@ const Home = () => {
                   <span className="products-count-label">
                     Found <strong>{filteredProducts.length}</strong> product{filteredProducts.length === 1 ? '' : 's'}
                   </span>
-                  {(selectedPriceRange !== 'all' || selectedSort !== 'featured') && (
+                  {activeFiltersCount > 0 && (
                     <div className="desktop-search-active-chips">
                       <span className="active-tags-title">Active Filters:</span>
                       {selectedPriceRange !== 'all' && (
@@ -543,15 +552,23 @@ const Home = () => {
                           </button>
                         </span>
                       )}
+                      <button
+                        type="button"
+                        className="topbar-clear-all-btn"
+                        onClick={handleClearFiltersOnly}
+                        title="Clear all active filters"
+                      >
+                        Clear all
+                      </button>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* MOBILE & TABLET ACTIVE FILTER TAGS PILLS (Existing style, hidden on desktop) */}
-              {!loading && (selectedPriceRange !== 'all' || selectedSort !== 'featured') && (
+              {/* MOBILE & TABLET ACTIVE FILTER TAGS PILLS (Hidden on desktop) */}
+              {!loading && activeFiltersCount > 0 && (
                 <div className="active-filter-tags-row mobile-tablet-filter-chips">
-                  <span className="active-tags-title">Active Filters:</span>
+                  <span className="active-tags-title">Active:</span>
 
                   {selectedPriceRange !== 'all' && (
                     <span className="active-filter-chip">
@@ -570,6 +587,15 @@ const Home = () => {
                       </button>
                     </span>
                   )}
+
+                  <button
+                    type="button"
+                    className="topbar-clear-all-btn mobile-clear-all-btn"
+                    onClick={handleClearFiltersOnly}
+                    title="Clear all active filters"
+                  >
+                    Clear all
+                  </button>
                 </div>
               )}
 
@@ -604,7 +630,7 @@ const Home = () => {
                   <button 
                     type="button" 
                     className="clear-all-empty-btn" 
-                    onClick={handleResetFilters}
+                    onClick={handleClearFiltersOnly}
                   >
                     <RotateCcw size={15} /> Clear All Filters
                   </button>
