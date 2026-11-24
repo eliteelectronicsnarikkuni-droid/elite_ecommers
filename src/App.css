@@ -5420,6 +5420,103 @@
   box-shadow: inset 0 0 0 3px #ffffff;
 }
 
+/* Amazon-Style Custom Price Filter */
+.amazon-custom-price-form {
+  margin-top: 0.75rem;
+  padding-top: 0.65rem;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.custom-price-inputs-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.custom-price-field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.custom-price-currency {
+  position: absolute;
+  left: 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #64748b;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.custom-price-input {
+  width: 100%;
+  padding: 0.35rem 0.35rem 0.35rem 1.15rem !important;
+  font-size: 0.8rem !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 6px !important;
+  background-color: #ffffff !important;
+  color: #0f1111 !important;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  height: 30px;
+  -moz-appearance: textfield;
+}
+
+.custom-price-input::-webkit-outer-spin-button,
+.custom-price-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.custom-price-input:focus {
+  border-color: #007185 !important;
+  box-shadow: 0 0 0 2px rgba(0, 113, 133, 0.2) !important;
+}
+
+.custom-price-separator {
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.custom-price-go-btn {
+  padding: 0.3rem 0.65rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #0f1111;
+  background-color: #ffffff;
+  border: 1px solid #888c8c;
+  border-radius: 6px;
+  cursor: pointer;
+  height: 30px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.15s ease;
+}
+
+.custom-price-go-btn:hover {
+  background-color: #f7fafa;
+  border-color: #007185;
+  color: #007185;
+  box-shadow: 0 2px 4px rgba(0, 113, 133, 0.15);
+}
+
+.mobile-custom-price-form {
+  width: 100%;
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.mobile-custom-price-form .custom-price-inputs-row {
+  max-width: 280px;
+}
+
 .filter-sidebar-delivery-perk {
   display: flex;
   align-items: center;

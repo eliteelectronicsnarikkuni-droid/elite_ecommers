@@ -40,6 +40,9 @@ const Home = () => {
   // Filter & Sort States
   const [selectedPriceRange, setSelectedPriceRange] = useState('all');
   const [selectedSort, setSelectedSort] = useState('featured');
+  const [customMinPrice, setCustomMinPrice] = useState('');
+  const [customMaxPrice, setCustomMaxPrice] = useState('');
+  const [appliedCustomPrice, setAppliedCustomPrice] = useState({ min: '', max: '' });
 
   useEffect(() => {
     if (window.location.hash === '#about') {
@@ -110,8 +113,69 @@ const Home = () => {
       if (selectedPriceRange !== 'all') {
         setSelectedPriceRange('all');
       }
+      setCustomMinPrice('');
+      setCustomMaxPrice('');
+      setAppliedCustomPrice({ min: '', max: '' });
     }
-  }, [isSearching, selectedSort, selectedPriceRange]);
+  }, [isSearching]);
+
+  const handleResetFilters = () => {
+    setSelectedPriceRange('all');
+    setSelectedSort('featured');
+    setCustomMinPrice('');
+    setCustomMaxPrice('');
+    setAppliedCustomPrice({ min: '', max: '' });
+    if (query) {
+      setSearchParams({});
+    }
+  };
+
+  const handleSelectPresetPrice = (rangeId) => {
+    setSelectedPriceRange(rangeId);
+    setCustomMinPrice('');
+    setCustomMaxPrice('');
+    setAppliedCustomPrice({ min: '', max: '' });
+  };
+
+  const handleApplyCustomPrice = (e) => {
+    if (e) e.preventDefault();
+    const minVal = customMinPrice.trim();
+    const maxVal = customMaxPrice.trim();
+    if (!minVal && !maxVal) {
+      setSelectedPriceRange('all');
+      setAppliedCustomPrice({ min: '', max: '' });
+      return;
+    }
+    const numMin = minVal !== '' ? parseFloat(minVal) : null;
+    const numMax = maxVal !== '' ? parseFloat(maxVal) : null;
+    if (numMin !== null && numMax !== null && numMin > numMax) {
+      setAppliedCustomPrice({ min: String(numMax), max: String(numMin) });
+      setCustomMinPrice(String(numMax));
+      setCustomMaxPrice(String(numMin));
+    } else {
+      setAppliedCustomPrice({ min: minVal, max: maxVal });
+    }
+    setSelectedPriceRange('custom');
+  };
+
+  const handleClearPriceFilter = () => {
+    setSelectedPriceRange('all');
+    setCustomMinPrice('');
+    setCustomMaxPrice('');
+    setAppliedCustomPrice({ min: '', max: '' });
+  };
+
+  const getPriceFilterLabel = () => {
+    if (selectedPriceRange === 'custom') {
+      const min = appliedCustomPrice.min;
+      const max = appliedCustomPrice.max;
+      if (min && max) return `₹${Number(min).toLocaleString('en-IN')} - ₹${Number(max).toLocaleString('en-IN')}`;
+      if (min) return `Over ₹${Number(min).toLocaleString('en-IN')}`;
+      if (max) return `Under ₹${Number(max).toLocaleString('en-IN')}`;
+      return 'Custom Price';
+    }
+    return PRICE_RANGES.find(r => r.id === selectedPriceRange)?.label;
+  };
 
   // Combined search, price filter & sorting
   const filteredProducts = useMemo(() => {
@@ -138,7 +202,12 @@ const Home = () => {
         let matchesPrice = true;
         if (isSearching && selectedPriceRange !== 'all') {
           const price = Number(product.price || 0);
-          if (selectedPriceRange === 'under-500') {
+          if (selectedPriceRange === 'custom') {
+            const min = appliedCustomPrice.min !== '' ? parseFloat(appliedCustomPrice.min) : null;
+            const max = appliedCustomPrice.max !== '' ? parseFloat(appliedCustomPrice.max) : null;
+            if (min !== null && price < min) matchesPrice = false;
+            if (max !== null && price > max) matchesPrice = false;
+          } else if (selectedPriceRange === 'under-500') {
             matchesPrice = price < 500;
           } else if (selectedPriceRange === '500-1000') {
             matchesPrice = price >= 500 && price <= 1000;
@@ -167,15 +236,7 @@ const Home = () => {
         }
         return 0; // Default Featured
       });
-  }, [products, query, selectedPriceRange, selectedSort, isSearching]);
-
-  const handleResetFilters = () => {
-    setSelectedPriceRange('all');
-    setSelectedSort('featured');
-    if (query) {
-      setSearchParams({});
-    }
-  };
+  }, [products, query, selectedPriceRange, selectedSort, isSearching, appliedCustomPrice]);
 
   return (
     <div className="home-container">
@@ -213,7 +274,7 @@ const Home = () => {
                           <button
                             type="button"
                             className={`filter-sidebar-item-btn ${isSelected ? 'selected' : ''}`}
-                            onClick={() => setSelectedPriceRange(range.id)}
+                            onClick={() => handleSelectPresetPrice(range.id)}
                           >
                             <span className={`filter-sidebar-radio ${isSelected ? 'checked' : ''}`}></span>
                             <span className="filter-sidebar-label">{range.label}</span>
@@ -222,6 +283,46 @@ const Home = () => {
                       );
                     })}
                   </ul>
+
+                  {/* Amazon-style Custom Price Range: [ ₹ Min ] to [ ₹ Max ] [ Go ] */}
+                  <form className="amazon-custom-price-form" onSubmit={handleApplyCustomPrice}>
+                    <div className="custom-price-inputs-row">
+                      <div className="custom-price-field">
+                        <span className="custom-price-currency">₹</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          placeholder="Min"
+                          value={customMinPrice}
+                          onChange={(e) => setCustomMinPrice(e.target.value)}
+                          className="custom-price-input"
+                          aria-label="Minimum price"
+                        />
+                      </div>
+                      <span className="custom-price-separator">to</span>
+                      <div className="custom-price-field">
+                        <span className="custom-price-currency">₹</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          placeholder="Max"
+                          value={customMaxPrice}
+                          onChange={(e) => setCustomMaxPrice(e.target.value)}
+                          className="custom-price-input"
+                          aria-label="Maximum price"
+                        />
+                      </div>
+                      <button 
+                        type="submit" 
+                        className="custom-price-go-btn"
+                        title="Go"
+                      >
+                        Go
+                      </button>
+                    </div>
+                  </form>
                 </div>
 
                 {/* Sort By Section */}
@@ -274,13 +375,23 @@ const Home = () => {
                       <IndianRupee size={14} className="filter-select-icon" />
                       <select
                         value={selectedPriceRange}
-                        onChange={(e) => setSelectedPriceRange(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === 'custom') {
+                            setSelectedPriceRange('custom');
+                          } else {
+                            handleSelectPresetPrice(val);
+                          }
+                        }}
                         className="filter-dropdown-select"
                         aria-label="Filter by price range"
                       >
                         {PRICE_RANGES.map((r) => (
                           <option key={r.id} value={r.id}>{r.label}</option>
                         ))}
+                        {selectedPriceRange === 'custom' && (
+                          <option value="custom">Custom Range</option>
+                        )}
                       </select>
                     </div>
 
@@ -299,6 +410,40 @@ const Home = () => {
                       </select>
                     </div>
                   </div>
+
+                  {/* Mobile Custom Price Row */}
+                  <form className="mobile-custom-price-form" onSubmit={handleApplyCustomPrice}>
+                    <div className="custom-price-inputs-row">
+                      <div className="custom-price-field">
+                        <span className="custom-price-currency">₹</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          placeholder="Min"
+                          value={customMinPrice}
+                          onChange={(e) => setCustomMinPrice(e.target.value)}
+                          className="custom-price-input"
+                          aria-label="Minimum price"
+                        />
+                      </div>
+                      <span className="custom-price-separator">to</span>
+                      <div className="custom-price-field">
+                        <span className="custom-price-currency">₹</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          placeholder="Max"
+                          value={customMaxPrice}
+                          onChange={(e) => setCustomMaxPrice(e.target.value)}
+                          className="custom-price-input"
+                          aria-label="Maximum price"
+                        />
+                      </div>
+                      <button type="submit" className="custom-price-go-btn">Go</button>
+                    </div>
+                  </form>
                 </div>
               )}
 
@@ -313,8 +458,8 @@ const Home = () => {
                       <span className="active-tags-title">Active Filters:</span>
                       {selectedPriceRange !== 'all' && (
                         <span className="active-filter-chip">
-                          Price: {PRICE_RANGES.find(r => r.id === selectedPriceRange)?.label}
-                          <button type="button" onClick={() => setSelectedPriceRange('all')} title="Remove price filter">
+                          Price: {getPriceFilterLabel()}
+                          <button type="button" onClick={handleClearPriceFilter} title="Remove price filter">
                             <X size={12} />
                           </button>
                         </span>
@@ -339,8 +484,8 @@ const Home = () => {
 
                   {selectedPriceRange !== 'all' && (
                     <span className="active-filter-chip">
-                      Price: {PRICE_RANGES.find(r => r.id === selectedPriceRange)?.label}
-                      <button type="button" onClick={() => setSelectedPriceRange('all')} title="Remove price filter">
+                      Price: {getPriceFilterLabel()}
+                      <button type="button" onClick={handleClearPriceFilter} title="Remove price filter">
                         <X size={12} />
                       </button>
                     </span>
