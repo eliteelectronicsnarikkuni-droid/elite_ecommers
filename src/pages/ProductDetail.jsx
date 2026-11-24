@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { getProductById } from '../services/productService';
 import { ArrowLeft, MessageCircle, Tag, ChevronLeft, ChevronRight, Camera, Zap, Package, Banknote, ShieldCheck, Truck } from 'lucide-react';
 
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -23,7 +24,15 @@ const ProductDetail = () => {
         if (isMounted) {
           setProduct(data);
           setActiveImageIndex(0);
-          setSelectedColorIndex(0);
+
+          const cIdx = searchParams.get('colorIndex');
+          const parsed = cIdx !== null ? parseInt(cIdx, 10) : 0;
+          if (Array.isArray(data.colors) && parsed >= 0 && parsed < data.colors.length) {
+            setSelectedColorIndex(parsed);
+          } else {
+            setSelectedColorIndex(0);
+          }
+
           window.scrollTo(0, 0);
         }
       } catch (err) {

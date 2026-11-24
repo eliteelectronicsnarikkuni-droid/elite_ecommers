@@ -5873,6 +5873,88 @@
   overflow: hidden;
 }
 
+/* Color Variant Swatches (Shown ONLY when product has multiple colors > 1) */
+.product-card-colors-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.3rem 0 0.2rem 0;
+  flex-wrap: wrap;
+}
+
+.product-card-swatches-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.card-color-swatch-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  padding: 1.5px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  outline: none;
+  flex-shrink: 0;
+}
+
+.card-color-swatch-btn:hover {
+  border-color: #2563eb;
+  transform: scale(1.12);
+  box-shadow: 0 1px 4px rgba(37, 99, 235, 0.25);
+}
+
+.card-color-swatch-btn.active {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 1.5px #2563eb;
+  transform: scale(1.08);
+}
+
+.card-swatch-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+.card-swatch-dot {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: block;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.card-colors-text-label {
+  font-size: 0.76rem;
+  color: #565959;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.card-colors-more-pill {
+  font-size: 0.68rem;
+  color: #475569;
+  font-weight: 700;
+  background: #f1f5f9;
+  padding: 0.1rem 0.35rem;
+  border-radius: 10px;
+  line-height: 1;
+}
+
+.product-grid-colors-section {
+  margin: 0.35rem 0 0.15rem 0;
+  gap: 0.4rem;
+}
+
 .product-list-pricing-wrap {
   margin: 0.45rem 0 0.6rem 0;
 }
@@ -6067,6 +6149,16 @@
   .list-delivery-icon {
     width: 12px;
     height: 12px;
+  }
+
+  .card-color-swatch-btn {
+    width: 19px;
+    height: 19px;
+    padding: 1px;
+  }
+
+  .card-colors-text-label {
+    font-size: 0.7rem;
   }
 
   .product-list-desc {

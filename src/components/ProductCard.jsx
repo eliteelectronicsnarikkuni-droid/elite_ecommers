@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Package, ChevronRight, Truck } from 'lucide-react';
 
@@ -9,11 +10,34 @@ const ProductCard = ({ product, layout = 'grid' }) => {
     return null;
   }
 
-  const imageUrl = (Array.isArray(product.images) && product.images[0]) || 
+  // Filter valid color variants
+  const colors = Array.isArray(product.colors) 
+    ? product.colors.filter(c => c && (c.name || c.colorCode || (Array.isArray(c.images) && c.images.length > 0)))
+    : [];
+  
+  // STRICT RULE: Only show colors if product has MULTIPLE colors (> 1)
+  // Single color or no color products must NOT show color options/swatches
+  const hasMultipleColors = colors.length > 1;
+
+  const [selectedColorIdx, setSelectedColorIdx] = useState(0);
+
+  const selectedColor = hasMultipleColors ? colors[selectedColorIdx] || colors[0] : null;
+
+  const colorImageUrl = selectedColor && Array.isArray(selectedColor.images) && selectedColor.images.length > 0 
+    ? selectedColor.images[0] 
+    : null;
+
+  const baseImageUrl = (Array.isArray(product.images) && product.images[0]) || 
     product.imageUrl || 
     product.image_url || 
     null;
-  
+
+  const displayImageUrl = colorImageUrl || baseImageUrl;
+
+  const targetUrl = hasMultipleColors && selectedColorIdx > 0
+    ? `/product/${product.id}?colorIndex=${selectedColorIdx}`
+    : `/product/${product.id}`;
+
   const offerPrice = Number(product.price || 0);
   const originalPrice = product.originalPrice ? Number(product.originalPrice) : null;
   const hasDiscount = originalPrice && originalPrice > offerPrice;
@@ -40,15 +64,15 @@ const ProductCard = ({ product, layout = 'grid' }) => {
   if (layout === 'list') {
     return (
       <Link 
-        to={`/product/${product.id}`} 
+        to={targetUrl} 
         className="product-card-list"
         onClick={handleClick}
         aria-label={`View details for ${product.name}`}
       >
         <div className="product-list-image-container">
-          {imageUrl ? (
+          {displayImageUrl ? (
             <img 
-              src={imageUrl} 
+              src={displayImageUrl} 
               alt={product.name} 
               className="product-list-image" 
               loading="lazy" 
@@ -69,6 +93,56 @@ const ProductCard = ({ product, layout = 'grid' }) => {
             )}
             <h3 className="product-list-name">{product.name}</h3>
           </div>
+
+          {/* Color Options: ONLY rendered if multiple colors (> 1) are available */}
+          {hasMultipleColors && (
+            <div className="product-card-colors-section">
+              <div className="product-card-swatches-row">
+                {colors.map((c, idx) => {
+                  const isSelected = selectedColorIdx === idx;
+                  const firstImg = Array.isArray(c.images) && c.images.length > 0 ? c.images[0] : null;
+
+                  return (
+                    <button
+                      key={c.id || idx}
+                      type="button"
+                      className={`card-color-swatch-btn ${isSelected ? 'active' : ''}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedColorIdx(idx);
+                      }}
+                      onMouseEnter={() => setSelectedColorIdx(idx)}
+                      title={c.name || `Color ${idx + 1}`}
+                      aria-label={`Select color ${c.name || idx + 1}`}
+                    >
+                      {firstImg ? (
+                        <img 
+                          src={firstImg} 
+                          alt={c.name || 'Color'} 
+                          className="card-swatch-img" 
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'block';
+                          }}
+                        />
+                      ) : null}
+                      <span 
+                        className="card-swatch-dot" 
+                        style={{ 
+                          backgroundColor: c.colorCode || '#2563eb',
+                          display: firstImg ? 'none' : 'block' 
+                        }} 
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+              <span className="card-colors-text-label">
+                {colors.length} colors{selectedColor?.name ? ` • ${selectedColor.name}` : ''}
+              </span>
+            </div>
+          )}
 
           <div className="product-list-pricing-wrap">
             <div className="product-list-price">₹{priceFormatted}</div>
@@ -105,15 +179,15 @@ const ProductCard = ({ product, layout = 'grid' }) => {
   // 2. Standard Grid Layout (For Homepage Catalog)
   return (
     <Link 
-      to={`/product/${product.id}`} 
+      to={targetUrl} 
       className="product-card"
       onClick={handleClick}
       aria-label={`View details for ${product.name}`}
     >
       <div className="product-image-container">
-        {imageUrl ? (
+        {displayImageUrl ? (
           <img 
-            src={imageUrl} 
+            src={displayImageUrl} 
             alt={product.name} 
             className="product-image" 
             loading="lazy" 
@@ -128,6 +202,59 @@ const ProductCard = ({ product, layout = 'grid' }) => {
       </div>
       <div className="product-info">
         <h3 className="product-name">{product.name}</h3>
+
+        {/* Color Options: ONLY rendered if multiple colors (> 1) are available */}
+        {hasMultipleColors && (
+          <div className="product-card-colors-section product-grid-colors-section">
+            <div className="product-card-swatches-row">
+              {colors.slice(0, 4).map((c, idx) => {
+                const isSelected = selectedColorIdx === idx;
+                const firstImg = Array.isArray(c.images) && c.images.length > 0 ? c.images[0] : null;
+
+                return (
+                  <button
+                    key={c.id || idx}
+                    type="button"
+                    className={`card-color-swatch-btn ${isSelected ? 'active' : ''}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSelectedColorIdx(idx);
+                    }}
+                    onMouseEnter={() => setSelectedColorIdx(idx)}
+                    title={c.name || `Color ${idx + 1}`}
+                    aria-label={`Select color ${c.name || idx + 1}`}
+                  >
+                    {firstImg ? (
+                      <img 
+                        src={firstImg} 
+                        alt={c.name || 'Color'} 
+                        className="card-swatch-img" 
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'block';
+                        }}
+                      />
+                    ) : null}
+                    <span 
+                      className="card-swatch-dot" 
+                      style={{ 
+                        backgroundColor: c.colorCode || '#2563eb',
+                        display: firstImg ? 'none' : 'block' 
+                      }} 
+                    />
+                  </button>
+                );
+              })}
+              {colors.length > 4 && (
+                <span className="card-colors-more-pill">+{colors.length - 4}</span>
+              )}
+            </div>
+            <span className="card-colors-text-label">
+              {colors.length} colors
+            </span>
+          </div>
+        )}
         
         <div className="product-pricing-wrap">
           <div className="card-prices-line">
