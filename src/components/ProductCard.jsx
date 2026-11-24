@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Package, ChevronRight } from 'lucide-react';
+import { Package, ChevronRight, Truck } from 'lucide-react';
 
 const ProductCard = ({ product, layout = 'grid' }) => {
   if (!product || product.isHidden === true || product.is_hidden === true) {
@@ -84,6 +84,11 @@ const ProductCard = ({ product, layout = 'grid' }) => {
                 <span className="card-discount-tag">{discountPercentage}% OFF</span>
               </div>
             )}
+          </div>
+
+          <div className="product-list-delivery">
+            <Truck size={14} className="list-delivery-icon" />
+            <span className="list-delivery-text">FREE Delivery</span>
           </div>
 
           {product.description && (

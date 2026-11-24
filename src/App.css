@@ -5346,6 +5346,26 @@
   font-weight: 400;
 }
 
+.product-list-delivery {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.825rem;
+  color: #0f1111;
+  font-weight: 600;
+  margin: 0.2rem 0 0.45rem 0;
+}
+
+.list-delivery-icon {
+  color: #16a34a;
+  flex-shrink: 0;
+}
+
+.list-delivery-text {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
 .product-list-desc {
   font-size: 0.875rem;
   color: #565959;
@@ -5477,6 +5497,17 @@
   .product-list-mrp-label,
   .product-list-original-price {
     font-size: 0.8rem;
+  }
+
+  .product-list-delivery {
+    font-size: 0.74rem;
+    margin: 0.1rem 0 0.35rem 0;
+    gap: 0.25rem;
+  }
+
+  .list-delivery-icon {
+    width: 12px;
+    height: 12px;
   }
 
   .product-list-desc {
