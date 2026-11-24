@@ -5364,16 +5364,23 @@
   background: none;
   border: none;
   color: #dc2626;
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-size: 0.8rem;
+  font-weight: 700;
   cursor: pointer;
-  padding: 0.15rem 0.35rem;
+  padding: 0.2rem 0.45rem;
   border-radius: 4px;
-  transition: background-color 0.15s ease;
+  transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .filter-sidebar-clear-btn:hover {
   background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.mobile-drawer-clear-btn {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
 }
 
 .filter-sidebar-section {

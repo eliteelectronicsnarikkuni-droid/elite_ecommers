@@ -275,6 +275,16 @@ const Home = () => {
                     <Filter size={16} className="sidebar-filter-icon" />
                     <span>Filters</span>
                   </div>
+                  {activeFiltersCount > 0 && (
+                    <button
+                      type="button"
+                      className="filter-sidebar-clear-btn"
+                      onClick={handleClearFiltersOnly}
+                      title="Clear all active filters"
+                    >
+                      Clear all
+                    </button>
+                  )}
                 </div>
 
                 {/* Price Section */}
@@ -413,6 +423,16 @@ const Home = () => {
                       )}
                     </div>
                     <div className="mobile-filter-header-right">
+                      {activeFiltersCount > 0 && (
+                        <button 
+                          type="button" 
+                          className="filter-sidebar-clear-btn mobile-drawer-clear-btn" 
+                          onClick={handleClearFiltersOnly}
+                          title="Clear all active filters"
+                        >
+                          Clear all
+                        </button>
+                      )}
                       <button 
                         type="button" 
                         className="mobile-filter-close-btn" 
@@ -552,14 +572,6 @@ const Home = () => {
                           </button>
                         </span>
                       )}
-                      <button
-                        type="button"
-                        className="topbar-clear-all-btn"
-                        onClick={handleClearFiltersOnly}
-                        title="Clear all active filters"
-                      >
-                        Clear all
-                      </button>
                     </div>
                   )}
                 </div>
@@ -587,15 +599,6 @@ const Home = () => {
                       </button>
                     </span>
                   )}
-
-                  <button
-                    type="button"
-                    className="topbar-clear-all-btn mobile-clear-all-btn"
-                    onClick={handleClearFiltersOnly}
-                    title="Clear all active filters"
-                  >
-                    Clear all
-                  </button>
                 </div>
               )}
 
