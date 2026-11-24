@@ -266,16 +266,6 @@ const Home = () => {
                     <Filter size={16} className="sidebar-filter-icon" />
                     <span>Filters</span>
                   </div>
-                  {(selectedPriceRange !== 'all' || selectedSort !== 'featured') && (
-                    <button
-                      type="button"
-                      className="filter-sidebar-clear-btn"
-                      onClick={handleResetFilters}
-                      title="Clear all filters"
-                    >
-                      Clear all
-                    </button>
-                  )}
                 </div>
 
                 {/* Price Section */}
@@ -414,15 +404,6 @@ const Home = () => {
                       )}
                     </div>
                     <div className="mobile-filter-header-right">
-                      {activeFiltersCount > 0 && (
-                        <button 
-                          type="button" 
-                          className="filter-sidebar-clear-btn" 
-                          onClick={handleResetFilters}
-                        >
-                          Clear all
-                        </button>
-                      )}
                       <button 
                         type="button" 
                         className="mobile-filter-close-btn" 
