@@ -1866,21 +1866,6 @@ const Admin = () => {
                   <EyeOff size={13} /> Hidden ({products.filter((p) => p.isHidden).length})
                 </button>
               </div>
-
-              {/* Add Product Button */}
-              <button
-                type="button"
-                className="admin-add-product-btn"
-                onClick={() => {
-                  resetForm();
-                  setEditingProductId(null);
-                  setIsFormOpen(true);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-              >
-                <Plus size={16} />
-                <span>Add Product</span>
-              </button>
             </div>
           </div>
 

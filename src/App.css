@@ -2748,26 +2748,6 @@
   align-items: center;
 }
 
-.admin-add-product-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  background-color: var(--color-primary, #2563eb);
-  color: #ffffff;
-  padding: 0.45rem 0.95rem;
-  font-size: 0.85rem;
-  font-weight: 700;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-}
-
-.admin-add-product-btn:hover {
-  background-color: #1d4ed8;
-}
-
 /* Form View Container & Nav Bar */
 .admin-form-view-container {
   width: 100%;
@@ -2880,10 +2860,6 @@
   }
   .table-search-input:focus {
     width: 100%;
-  }
-  .admin-add-product-btn {
-    flex: 1;
-    justify-content: center;
   }
   .form-actions-row {
     flex-direction: column;
