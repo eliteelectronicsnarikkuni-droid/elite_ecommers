@@ -265,7 +265,7 @@ const Home = () => {
             </div>
           ) : (
             <div className="products-grid homepage-products-grid">
-              {Array.from({ length: 6 }).map((_, i) => (
+              {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="skeleton-product-card">
                   <div className="skeleton-thumb shimmer"></div>
                   <div className="skeleton-body">

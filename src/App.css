@@ -730,18 +730,30 @@
 
 .products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
-  gap: clamp(1.25rem, 3vw, 2.5rem);
+  grid-template-columns: repeat(4, 1fr);
+  gap: clamp(1rem, 2vw, 1.75rem);
 }
 
-/* Homepage: Exactly 2 products per row */
+/* Homepage Products Grid (Desktop: 4, Tablet: 3, Mobile: 2) */
 .homepage-products-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr) !important;
-  gap: clamp(0.75rem, 2.5vw, 1.5rem);
-  max-width: 900px;
-  margin: 0 auto;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: clamp(1rem, 2vw, 1.75rem);
   width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .homepage-products-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: clamp(0.75rem, 2vw, 1.25rem);
+  }
+}
+
+@media (max-width: 768px) {
+  .homepage-products-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: clamp(0.5rem, 2vw, 1rem);
+  }
 }
 
 /* Product Card */
@@ -1177,7 +1189,8 @@
     margin: 0.5rem auto 3rem;
   }
 
-  .products-grid {
+  .products-grid,
+  .homepage-products-grid {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: clamp(0.5rem, 2vw, 1rem);
   }
@@ -1269,7 +1282,8 @@
 }
 
 @media (max-width: 360px) {
-  .products-grid {
+  .products-grid,
+  .homepage-products-grid {
     gap: 0.4rem;
   }
 
