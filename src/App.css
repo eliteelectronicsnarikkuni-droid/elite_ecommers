@@ -818,8 +818,15 @@
 }
 
 .product-name {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.35;
   margin-bottom: 0.5rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  height: 2.7em; /* Keep cards aligned evenly across rows */
 }
 
 .product-price {
