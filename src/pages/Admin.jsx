@@ -47,7 +47,8 @@ import {
   ChevronUp,
   ChevronDown,
   Check,
-  Loader2
+  Loader2,
+  Search
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -77,6 +78,8 @@ const Admin = () => {
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null); // { type: 'success' | 'error' | 'info', message: '' }
   const [editingProductId, setEditingProductId] = useState(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [tableSearch, setTableSearch] = useState('');
   const [visibilityFilter, setVisibilityFilter] = useState('all'); // 'all' | 'visible' | 'hidden'
   const [togglingVisibilityId, setTogglingVisibilityId] = useState(null);
 
@@ -579,9 +582,8 @@ const Admin = () => {
       message: `Now editing "${product.name}". Update the details below and click "Update Product".`
     });
 
-    if (formRef.current) {
-      formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    setIsFormOpen(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleEditClick = (product) => {
@@ -612,8 +614,34 @@ const Admin = () => {
         setEditingProductId(null);
         resetForm();
         setFeedback(null);
+        setIsFormOpen(false);
       }
     });
+  };
+
+  const handleCancelForm = () => {
+    if (editingProductId) {
+      requestCancelEdit();
+    } else {
+      const isDirty = (name && name.trim()) || offerPrice || actualPrice || description || imageItems.length > 0 || colorVariants.length > 0;
+      if (isDirty) {
+        setConfirmModal({
+          isOpen: true,
+          type: 'cancel_edit',
+          title: 'Discard New Product?',
+          message: 'Are you sure you want to discard this product? Any entered details will be lost.',
+          confirmText: 'Yes, Discard',
+          confirmVariant: 'danger',
+          onConfirm: () => {
+            resetForm();
+            setIsFormOpen(false);
+          }
+        });
+      } else {
+        resetForm();
+        setIsFormOpen(false);
+      }
+    }
   };
 
   const resetForm = () => {
@@ -786,6 +814,7 @@ const Admin = () => {
       }
 
       resetForm();
+      setIsFormOpen(false);
       await loadProducts();
     } catch (err) {
       console.error('Error saving product:', err);
@@ -820,6 +849,7 @@ const Admin = () => {
       });
       if (editingProductId === id) {
         resetForm();
+        setIsFormOpen(false);
       }
     } catch (err) {
       console.error('Error deleting product:', err);
@@ -1175,8 +1205,25 @@ const Admin = () => {
       </div>
 
       <div className="admin-header">
-        <h1>Product Management</h1>
-        <p>Add and manage your store products stored in Supabase</p>
+        <div className="admin-header-title-wrap">
+          <h1>Product Management</h1>
+          <p>Add and manage your store products stored in Supabase</p>
+        </div>
+        {!isFormOpen && (
+          <button
+            type="button"
+            className="admin-add-product-main-btn"
+            onClick={() => {
+              resetForm();
+              setEditingProductId(null);
+              setIsFormOpen(true);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          >
+            <Plus size={18} />
+            <span>Add Product</span>
+          </button>
+        )}
       </div>
 
       {feedback && (
@@ -1190,35 +1237,48 @@ const Admin = () => {
         </div>
       )}
 
-      <div className="admin-grid">
-        {/* ADD / EDIT PRODUCT FORM */}
-        <div className={`admin-card ${editingProductId ? 'card-editing-mode' : ''}`} ref={formRef}>
-          <div className="card-title-header">
-            <div className="card-title">
-              {editingProductId ? (
-                <>
-                  <Pencil size={22} className="edit-icon-highlight" />
-                  <h2>Edit Product</h2>
-                </>
-              ) : (
-                <>
-                  <Plus size={22} />
-                  <h2>Add New Product</h2>
-                </>
-              )}
-            </div>
+      {isFormOpen ? (
+        <div className="admin-form-view-container">
+          <div className="admin-form-nav-bar">
+            <button
+              type="button"
+              className="admin-back-to-table-btn"
+              onClick={handleCancelForm}
+            >
+              <ArrowLeft size={16} />
+              <span>Back to Products List</span>
+            </button>
+            <span className="admin-form-mode-tag">
+              {editingProductId ? 'Editing Mode' : 'New Product'}
+            </span>
+          </div>
 
-            {editingProductId && (
+          {/* ADD / EDIT PRODUCT FORM */}
+          <div className={`admin-card admin-form-card ${editingProductId ? 'card-editing-mode' : ''}`} ref={formRef}>
+            <div className="card-title-header">
+              <div className="card-title">
+                {editingProductId ? (
+                  <>
+                    <Pencil size={22} className="edit-icon-highlight" />
+                    <h2>Edit Product: {name || 'Item'}</h2>
+                  </>
+                ) : (
+                  <>
+                    <Plus size={22} />
+                    <h2>Add New Product</h2>
+                  </>
+                )}
+              </div>
+
               <button
                 type="button"
                 className="cancel-edit-btn"
-                onClick={requestCancelEdit}
-                title="Cancel editing and create new product"
+                onClick={handleCancelForm}
+                title="Cancel and return to products list"
               >
-                <X size={15} /> Cancel Edit
+                <X size={15} /> Cancel
               </button>
-            )}
-          </div>
+            </div>
 
           <form onSubmit={handleSubmit} className="admin-form">
             <div className="form-group">
@@ -1713,61 +1773,113 @@ const Admin = () => {
               </div>
             </div>
 
-            <button
-              type="submit"
-              className={`submit-product-btn ${editingProductId ? 'update-mode' : ''}`}
-              disabled={submitting}
-            >
-              {submitting ? (
-                <>
-                  <div className="spinner-small"></div>
-                  {editingProductId ? 'Updating in Supabase...' : 'Saving to Supabase...'}
-                </>
-              ) : editingProductId ? (
-                <>
-                  <CheckCircle2 size={18} /> Update Product
-                </>
-              ) : (
-                <>
-                  <Plus size={18} /> Add Product to Store
-                </>
-              )}
-            </button>
+            <div className="form-actions-row">
+              <button
+                type="submit"
+                className={`submit-product-btn ${editingProductId ? 'update-mode' : ''}`}
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <>
+                    <div className="spinner-small"></div>
+                    {editingProductId ? 'Updating in Supabase...' : 'Saving to Supabase...'}
+                  </>
+                ) : editingProductId ? (
+                  <>
+                    <CheckCircle2 size={18} /> Update Product
+                  </>
+                ) : (
+                  <>
+                    <Plus size={18} /> Add Product to Store
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                className="cancel-form-btn"
+                onClick={handleCancelForm}
+                disabled={submitting}
+              >
+                <X size={16} /> Cancel
+              </button>
+            </div>
           </form>
         </div>
-
+      </div>
+    ) : (
+      <div className="admin-table-view-container">
         {/* EXISTING PRODUCTS LIST */}
-        <div className="admin-card">
-          <div className="card-title-header">
+        <div className="admin-card admin-table-card">
+          <div className="card-title-header admin-table-header-row">
             <div className="card-title">
               <Package size={22} />
               <h2>Store Products ({products.length})</h2>
             </div>
 
-            {/* Quick Visibility Filter Tabs */}
-            <div className="admin-visibility-filter-tabs">
+            <div className="card-header-actions-group">
+              {/* Quick Search */}
+              <div className="admin-table-search-box">
+                <Search size={14} className="table-search-icon" />
+                <input
+                  type="text"
+                  placeholder="Search in table..."
+                  value={tableSearch}
+                  onChange={(e) => setTableSearch(e.target.value)}
+                  className="table-search-input"
+                />
+                {tableSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setTableSearch('')}
+                    className="table-search-clear"
+                    title="Clear search"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+
+              {/* Quick Visibility Filter Tabs */}
+              <div className="admin-visibility-filter-tabs">
+                <button
+                  type="button"
+                  className={`admin-vis-tab ${visibilityFilter === 'all' ? 'active' : ''}`}
+                  onClick={() => setVisibilityFilter('all')}
+                >
+                  All ({products.length})
+                </button>
+                <button
+                  type="button"
+                  className={`admin-vis-tab vis-visible-tab ${visibilityFilter === 'visible' ? 'active' : ''}`}
+                  onClick={() => setVisibilityFilter('visible')}
+                  title="Show only products currently visible to buyers"
+                >
+                  <Eye size={13} /> Shown ({products.filter((p) => !p.isHidden).length})
+                </button>
+                <button
+                  type="button"
+                  className={`admin-vis-tab vis-hidden-tab ${visibilityFilter === 'hidden' ? 'active' : ''}`}
+                  onClick={() => setVisibilityFilter('hidden')}
+                  title="Show only products hidden from buyers"
+                >
+                  <EyeOff size={13} /> Hidden ({products.filter((p) => p.isHidden).length})
+                </button>
+              </div>
+
+              {/* Add Product Button */}
               <button
                 type="button"
-                className={`admin-vis-tab ${visibilityFilter === 'all' ? 'active' : ''}`}
-                onClick={() => setVisibilityFilter('all')}
+                className="admin-add-product-btn"
+                onClick={() => {
+                  resetForm();
+                  setEditingProductId(null);
+                  setIsFormOpen(true);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
               >
-                All ({products.length})
-              </button>
-              <button
-                type="button"
-                className={`admin-vis-tab vis-visible-tab ${visibilityFilter === 'visible' ? 'active' : ''}`}
-                onClick={() => setVisibilityFilter('visible')}
-                title="Show only products currently visible to buyers"
-              >
-                <Eye size={13} /> Shown ({products.filter((p) => !p.isHidden).length})
-              </button>
-              <button
-                type="button"
-                className={`admin-vis-tab vis-hidden-tab ${visibilityFilter === 'hidden' ? 'active' : ''}`}
-                onClick={() => setVisibilityFilter('hidden')}
-                title="Show only products hidden from buyers"
-              >
-                <EyeOff size={13} /> Hidden ({products.filter((p) => p.isHidden).length})
+                <Plus size={16} />
+                <span>Add Product</span>
               </button>
             </div>
           </div>
@@ -1846,6 +1958,15 @@ const Admin = () => {
                       if (visibilityFilter === 'visible') return !p.isHidden;
                       if (visibilityFilter === 'hidden') return p.isHidden;
                       return true;
+                    })
+                    .filter((p) => {
+                      if (!tableSearch.trim()) return true;
+                      const q = tableSearch.toLowerCase().trim();
+                      return (
+                        (p.name && p.name.toLowerCase().includes(q)) ||
+                        (p.category && p.category.toLowerCase().includes(q)) ||
+                        String(p.id).includes(q)
+                      );
                     })
                     .map((p) => {
                     const globalIndex = products.findIndex((item) => String(item.id) === String(p.id));
@@ -2065,6 +2186,7 @@ const Admin = () => {
           )}
         </div>
       </div>
+    )}
 
       {/* Confirmation Popup Modal for Delete & Edit Actions */}
       {confirmModal.isOpen && (
