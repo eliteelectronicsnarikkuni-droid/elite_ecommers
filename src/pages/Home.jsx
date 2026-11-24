@@ -180,14 +180,6 @@ const Home = () => {
   return (
     <div className="home-container">
       <main className="products-section">
-        {/* Search Results Header - only displayed when search is active */}
-        {isSearching && (
-          <div className="section-header">
-            <h2>Search Results for "{query}"</h2>
-            <div className="header-underline"></div>
-          </div>
-        )}
-
         {/* CONTROLS TOOLBAR: Price & Sort Filters - ONLY SHOWN WHEN SEARCHING */}
         {!loading && isSearching && (
           <div className="filter-controls-toolbar">
