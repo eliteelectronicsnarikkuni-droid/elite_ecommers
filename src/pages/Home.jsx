@@ -237,6 +237,22 @@ const Home = () => {
         if (selectedSort === 'newest') {
           return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
         }
+
+        // Default Featured: Flipkart-style product name relevance ranking
+        if (queryClean) {
+          const aName = (a.name || '').toLowerCase();
+          const bName = (b.name || '').toLowerCase();
+          const aStarts = aName.startsWith(queryClean);
+          const bStarts = bName.startsWith(queryClean);
+          if (aStarts && !bStarts) return -1;
+          if (!aStarts && bStarts) return 1;
+
+          const aInName = aName.includes(queryClean);
+          const bInName = bName.includes(queryClean);
+          if (aInName && !bInName) return -1;
+          if (!aInName && bInName) return 1;
+        }
+
         return 0; // Default Featured
       });
   }, [products, query, selectedPriceRange, selectedSort, isSearching, appliedCustomPrice]);

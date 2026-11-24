@@ -21,15 +21,13 @@ const POPULAR_SEARCHES = [
   'Electronic Components'
 ];
 
-const ALL_CATEGORIES = [
-  'Speakers & Audio',
-  'LED Lights',
-  'Soldering & Tools',
-  'Multimeters & Testers',
-  'Torches & Flashlights',
-  'Electronic Components',
-  'Accessories'
-];
+const getProductThumb = (prod) => {
+  return (Array.isArray(prod?.images) && prod.images[0]) || 
+    prod?.imageUrl || 
+    prod?.image_url || 
+    (Array.isArray(prod?.colors) && prod.colors[0]?.images?.[0]) || 
+    null;
+};
 
 const highlightMatch = (text, query) => {
   if (!query || !text) return text;
@@ -203,7 +201,7 @@ const Navbar = () => {
     }
   };
 
-  // Derive Flipkart-style matches
+  // Derive Flipkart-style product matches
   const queryClean = searchQuery.trim().toLowerCase();
 
   const matchingProducts = queryClean
@@ -217,17 +215,21 @@ const Navbar = () => {
           return name.includes(queryClean) || cat.includes(queryClean) || desc.includes(queryClean);
         })
         .sort((a, b) => {
-          const aStarts = (a.name || '').toLowerCase().startsWith(queryClean);
-          const bStarts = (b.name || '').toLowerCase().startsWith(queryClean);
+          const aName = (a.name || '').toLowerCase();
+          const bName = (b.name || '').toLowerCase();
+          const aStarts = aName.startsWith(queryClean);
+          const bStarts = bName.startsWith(queryClean);
           if (aStarts && !bStarts) return -1;
           if (!aStarts && bStarts) return 1;
+
+          const aInName = aName.includes(queryClean);
+          const bInName = bName.includes(queryClean);
+          if (aInName && !bInName) return -1;
+          if (!aInName && bInName) return 1;
+
           return 0;
         })
-        .slice(0, 5)
-    : [];
-
-  const matchingCategories = queryClean
-    ? ALL_CATEGORIES.filter((cat) => cat.toLowerCase().includes(queryClean)).slice(0, 2)
+        .slice(0, 8)
     : [];
 
   return (
@@ -249,7 +251,7 @@ const Navbar = () => {
               <input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search products, speakers, LED..."
+                placeholder="Search for Products, Brands and More"
                 value={searchQuery}
                 onChange={handleSearchChange}
                 onFocus={() => setIsSearchFocused(true)}
@@ -270,83 +272,66 @@ const Navbar = () => {
               )}
             </form>
 
-            {/* Instant Suggestions Dropdown */}
+            {/* Instant Suggestions Dropdown (Flipkart-Style Pure Product Search) */}
             {isSearchFocused && (
               <div className="search-suggestions-dropdown">
                 {queryClean ? (
                   <>
-                    {/* Matching Categories */}
-                    {matchingCategories.length > 0 && (
-                      <div className="suggestion-section">
-                        <div className="suggestion-section-title">CATEGORIES</div>
-                        {matchingCategories.map((cat) => (
-                          <div
-                            key={cat}
-                            className="suggestion-item category-item"
-                            onClick={() => handleSelectQuery(cat)}
-                          >
-                            <Search size={14} className="suggestion-item-icon" />
-                            <span className="suggestion-label">
-                              Search in <strong className="cat-keyword">{cat}</strong>
-                            </span>
-                            <ChevronRight size={14} className="suggestion-arrow" />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
                     {/* Matching Products */}
                     {matchingProducts.length > 0 ? (
                       <div className="suggestion-section">
                         <div className="suggestion-section-title">PRODUCTS</div>
-                        {matchingProducts.map((prod) => (
-                          <div
-                            key={prod.id}
-                            className="suggestion-item product-item"
-                            onClick={() => handleSelectProduct(prod.id)}
-                          >
-                            {prod.imageUrl ? (
-                              <img
-                                src={prod.imageUrl}
-                                alt={prod.name}
-                                className="suggestion-thumb"
-                                loading="lazy"
-                              />
-                            ) : (
-                              <div className="suggestion-thumb-fallback">
-                                <Package size={16} color="#94a3b8" />
-                              </div>
-                            )}
-                            <div className="suggestion-info">
-                              <span className="suggestion-title">
-                                {highlightMatch(prod.name, searchQuery.trim())}
-                              </span>
-                              <div className="suggestion-price-row">
-                                <span className="suggestion-price">
-                                  ₹{Number(prod.price || 0).toLocaleString('en-IN')}
+                        {matchingProducts.map((prod) => {
+                          const prodImg = getProductThumb(prod);
+                          return (
+                            <div
+                              key={prod.id}
+                              className="suggestion-item product-item"
+                              onClick={() => handleSelectProduct(prod.id)}
+                            >
+                              {prodImg ? (
+                                <img
+                                  src={prodImg}
+                                  alt={prod.name}
+                                  className="suggestion-thumb"
+                                  loading="lazy"
+                                />
+                              ) : (
+                                <div className="suggestion-thumb-fallback">
+                                  <Package size={16} color="#94a3b8" />
+                                </div>
+                              )}
+                              <div className="suggestion-info">
+                                <span className="suggestion-title">
+                                  {highlightMatch(prod.name, searchQuery.trim())}
                                 </span>
-                                {prod.discountPercentage > 0 && (
-                                  <span className="suggestion-discount">
-                                    {prod.discountPercentage}% OFF
+                                <div className="suggestion-price-row">
+                                  <span className="suggestion-price">
+                                    ₹{Number(prod.price || 0).toLocaleString('en-IN')}
                                   </span>
-                                )}
-                                <span className="suggestion-category-tag">{prod.category}</span>
+                                  {prod.discountPercentage > 0 && (
+                                    <span className="suggestion-discount">
+                                      {prod.discountPercentage}% OFF
+                                    </span>
+                                  )}
+                                  {prod.category && (
+                                    <span className="suggestion-category-tag">in {prod.category}</span>
+                                  )}
+                                </div>
                               </div>
+                              <ArrowUpRight size={15} className="suggestion-arrow" />
                             </div>
-                            <ArrowUpRight size={15} className="suggestion-arrow" />
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     ) : (
-                      matchingCategories.length === 0 && (
-                        <div className="suggestion-empty-state">
-                          <Search size={22} className="empty-search-icon" />
-                          <p>
-                            No products matching "<strong>{searchQuery}</strong>"
-                          </p>
-                          <span>Try checking spelling or search for speakers, LED, multimeters...</span>
-                        </div>
-                      )
+                      <div className="suggestion-empty-state">
+                        <Search size={22} className="empty-search-icon" />
+                        <p>
+                          No products matching "<strong>{searchQuery}</strong>"
+                        </p>
+                        <span>Try searching for speakers, LED lights, tools or audio...</span>
+                      </div>
                     )}
 
                     {/* View All Results Button */}
@@ -355,31 +340,58 @@ const Navbar = () => {
                       onClick={() => handleSelectQuery(searchQuery.trim())}
                     >
                       <span>
-                        See all results for "<strong>{searchQuery.trim()}</strong>"
+                        See all products for "<strong>{searchQuery.trim()}</strong>"
                       </span>
                       <ArrowRight size={15} />
                     </div>
                   </>
                 ) : (
-                  /* Popular Searches when search input is empty */
+                  /* Trending Products when search input is empty (Flipkart-style) */
                   <div className="suggestion-section">
                     <div className="suggestion-section-title popular-header">
                       <TrendingUp size={14} />
-                      <span>POPULAR SEARCHES</span>
+                      <span>TRENDING PRODUCTS</span>
                     </div>
-                    <div className="popular-tags-list">
-                      {POPULAR_SEARCHES.map((item) => (
-                        <button
-                          key={item}
-                          type="button"
-                          className="popular-tag-item"
-                          onClick={() => handleSelectQuery(item)}
+                    {catalog.slice(0, 5).map((prod) => {
+                      const prodImg = getProductThumb(prod);
+                      return (
+                        <div
+                          key={prod.id}
+                          className="suggestion-item product-item"
+                          onClick={() => handleSelectProduct(prod.id)}
                         >
-                          <Search size={12} />
-                          <span>{item}</span>
-                        </button>
-                      ))}
-                    </div>
+                          {prodImg ? (
+                            <img
+                              src={prodImg}
+                              alt={prod.name}
+                              className="suggestion-thumb"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="suggestion-thumb-fallback">
+                              <Package size={16} color="#94a3b8" />
+                            </div>
+                          )}
+                          <div className="suggestion-info">
+                            <span className="suggestion-title">{prod.name}</span>
+                            <div className="suggestion-price-row">
+                              <span className="suggestion-price">
+                                ₹{Number(prod.price || 0).toLocaleString('en-IN')}
+                              </span>
+                              {prod.discountPercentage > 0 && (
+                                <span className="suggestion-discount">
+                                  {prod.discountPercentage}% OFF
+                                </span>
+                              )}
+                              {prod.category && (
+                                <span className="suggestion-category-tag">in {prod.category}</span>
+                              )}
+                            </div>
+                          </div>
+                          <ArrowUpRight size={15} className="suggestion-arrow" />
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
