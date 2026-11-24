@@ -5279,8 +5279,9 @@
     min-width: 0;
   }
 
-  /* Hide Mobile/Tablet Toolbar & Chips on Desktop */
-  .mobile-tablet-filter-toolbar,
+  /* Hide Mobile/Tablet Controls & Drawer on Desktop */
+  .mobile-search-controls-bar,
+  .mobile-filter-drawer-container,
   .mobile-tablet-filter-chips {
     display: none !important;
   }
@@ -5533,6 +5534,197 @@
   color: #16a34a;
   font-weight: 800;
   font-size: 0.85rem;
+}
+
+/* ========================================================
+   Mobile Search Controls & Slide-in Filter Drawer
+   ======================================================== */
+.mobile-search-controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.85rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+}
+
+.mobile-filter-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: #1e293b;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 20px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.15s ease;
+}
+
+.mobile-filter-trigger-btn:hover,
+.mobile-filter-trigger-btn.active {
+  border-color: var(--color-primary, #2563eb);
+  color: var(--color-primary, #2563eb);
+  background: #eff6ff;
+}
+
+.mobile-filter-count-badge {
+  background: var(--color-primary, #2563eb);
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-filter-drawer-container {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  visibility: hidden;
+  transition: visibility 0.25s ease;
+}
+
+.mobile-filter-drawer-container.open {
+  visibility: visible;
+}
+
+.mobile-filter-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.mobile-filter-drawer-container.open .mobile-filter-backdrop {
+  opacity: 1;
+}
+
+.mobile-filter-sheet {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 86%;
+  max-width: 360px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -4px 0 25px rgba(0, 0, 0, 0.2);
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 10000;
+}
+
+.mobile-filter-drawer-container.open .mobile-filter-sheet {
+  transform: translateX(0);
+}
+
+.mobile-filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.15rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.mobile-filter-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mobile-filter-header-left h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f1111;
+}
+
+.mobile-filter-active-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: #eff6ff;
+  color: var(--color-primary, #2563eb);
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid #bfdbfe;
+}
+
+.mobile-filter-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.mobile-filter-close-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.mobile-filter-close-btn:hover {
+  background-color: #f1f5f9;
+  color: #0f1111;
+}
+
+.mobile-filter-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.15rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-filter-footer {
+  padding: 0.85rem 1.15rem;
+  border-top: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 -3px 12px rgba(0, 0, 0, 0.05);
+}
+
+.mobile-filter-apply-btn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--color-primary, #2563eb);
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.mobile-filter-apply-btn:hover {
+  background: #1d4ed8;
+}
+
+.mobile-filter-apply-btn:active {
+  transform: scale(0.99);
 }
 
 /* ========================================================

@@ -43,6 +43,19 @@ const Home = () => {
   const [customMinPrice, setCustomMinPrice] = useState('');
   const [customMaxPrice, setCustomMaxPrice] = useState('');
   const [appliedCustomPrice, setAppliedCustomPrice] = useState({ min: '', max: '' });
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  // Prevent background scrolling when mobile filter drawer is open
+  useEffect(() => {
+    if (isMobileFilterOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileFilterOpen]);
 
   useEffect(() => {
     if (window.location.hash === '#about') {
@@ -238,6 +251,8 @@ const Home = () => {
       });
   }, [products, query, selectedPriceRange, selectedSort, isSearching, appliedCustomPrice]);
 
+  const activeFiltersCount = (selectedPriceRange !== 'all' ? 1 : 0) + (selectedSort !== 'featured' ? 1 : 0);
+
   return (
     <div className="home-container">
       <main className="products-section">
@@ -360,92 +375,167 @@ const Home = () => {
 
             {/* MAIN SEARCH RESULTS COLUMN */}
             <div className="search-layout-main">
-              {/* MOBILE & TABLET HORIZONTAL TOOLBAR (Existing style, hidden on desktop) */}
+              {/* MOBILE & TABLET COMPACT CONTROLS BAR: Count + Filter Button (Hidden on Desktop) */}
               {!loading && (
-                <div className="filter-controls-toolbar mobile-tablet-filter-toolbar">
-                  <div className="filter-toolbar-left">
-                    <span className="products-count-label">
-                      Found <strong>{filteredProducts.length}</strong> product{filteredProducts.length === 1 ? '' : 's'}
-                    </span>
-                  </div>
+                <div className="mobile-search-controls-bar">
+                  <span className="products-count-label">
+                    Found <strong>{filteredProducts.length}</strong> product{filteredProducts.length === 1 ? '' : 's'}
+                  </span>
 
-                  <div className="filter-toolbar-right">
-                    {/* Quick Price Range Filter */}
-                    <div className="filter-select-container">
-                      <IndianRupee size={14} className="filter-select-icon" />
-                      <select
-                        value={selectedPriceRange}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val === 'custom') {
-                            setSelectedPriceRange('custom');
-                          } else {
-                            handleSelectPresetPrice(val);
-                          }
-                        }}
-                        className="filter-dropdown-select"
-                        aria-label="Filter by price range"
-                      >
-                        {PRICE_RANGES.map((r) => (
-                          <option key={r.id} value={r.id}>{r.label}</option>
-                        ))}
-                        {selectedPriceRange === 'custom' && (
-                          <option value="custom">Custom Range</option>
-                        )}
-                      </select>
-                    </div>
-
-                    {/* Quick Sort Options */}
-                    <div className="filter-select-container sort-search-container">
-                      <ArrowUpDown size={14} className="filter-select-icon" />
-                      <select
-                        value={selectedSort}
-                        onChange={(e) => setSelectedSort(e.target.value)}
-                        className="filter-dropdown-select"
-                        aria-label="Sort searched products"
-                      >
-                        {SORT_OPTIONS.map((s) => (
-                          <option key={s.id} value={s.id}>{s.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Mobile Custom Price Row */}
-                  <form className="mobile-custom-price-form" onSubmit={handleApplyCustomPrice}>
-                    <div className="custom-price-inputs-row">
-                      <div className="custom-price-field">
-                        <span className="custom-price-currency">₹</span>
-                        <input
-                          type="number"
-                          min="0"
-                          step="1"
-                          placeholder="Min"
-                          value={customMinPrice}
-                          onChange={(e) => setCustomMinPrice(e.target.value)}
-                          className="custom-price-input"
-                          aria-label="Minimum price"
-                        />
-                      </div>
-                      <span className="custom-price-separator">to</span>
-                      <div className="custom-price-field">
-                        <span className="custom-price-currency">₹</span>
-                        <input
-                          type="number"
-                          min="0"
-                          step="1"
-                          placeholder="Max"
-                          value={customMaxPrice}
-                          onChange={(e) => setCustomMaxPrice(e.target.value)}
-                          className="custom-price-input"
-                          aria-label="Maximum price"
-                        />
-                      </div>
-                      <button type="submit" className="custom-price-go-btn">Go</button>
-                    </div>
-                  </form>
+                  <button
+                    type="button"
+                    className={`mobile-filter-trigger-btn ${activeFiltersCount > 0 ? 'active' : ''}`}
+                    onClick={() => setIsMobileFilterOpen(true)}
+                    aria-label="Open filter options"
+                  >
+                    <Filter size={15} />
+                    <span>Filter</span>
+                    {activeFiltersCount > 0 && (
+                      <span className="mobile-filter-count-badge">{activeFiltersCount}</span>
+                    )}
+                  </button>
                 </div>
               )}
+
+              {/* MOBILE / TABLET SLIDE-IN FILTER SIDEBAR DRAWER (Amazon & Flipkart style) */}
+              <div className={`mobile-filter-drawer-container ${isMobileFilterOpen ? 'open' : ''}`}>
+                <div 
+                  className="mobile-filter-backdrop" 
+                  onClick={() => setIsMobileFilterOpen(false)}
+                  aria-hidden="true"
+                />
+                <div className="mobile-filter-sheet" role="dialog" aria-modal="true" aria-label="Filters">
+                  <div className="mobile-filter-header">
+                    <div className="mobile-filter-header-left">
+                      <Filter size={17} className="sidebar-filter-icon" />
+                      <h3>Filters</h3>
+                      {activeFiltersCount > 0 && (
+                        <span className="mobile-filter-active-pill">{activeFiltersCount} active</span>
+                      )}
+                    </div>
+                    <div className="mobile-filter-header-right">
+                      {activeFiltersCount > 0 && (
+                        <button 
+                          type="button" 
+                          className="filter-sidebar-clear-btn" 
+                          onClick={handleResetFilters}
+                        >
+                          Clear all
+                        </button>
+                      )}
+                      <button 
+                        type="button" 
+                        className="mobile-filter-close-btn" 
+                        onClick={() => setIsMobileFilterOpen(false)}
+                        aria-label="Close filters"
+                      >
+                        <X size={20} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mobile-filter-body">
+                    {/* Price Section */}
+                    <div className="filter-sidebar-section">
+                      <h4 className="filter-sidebar-heading">Price</h4>
+                      <ul className="filter-sidebar-list">
+                        {PRICE_RANGES.map((range) => {
+                          const isSelected = selectedPriceRange === range.id;
+                          return (
+                            <li key={range.id}>
+                              <button
+                                type="button"
+                                className={`filter-sidebar-item-btn ${isSelected ? 'selected' : ''}`}
+                                onClick={() => handleSelectPresetPrice(range.id)}
+                              >
+                                <span className={`filter-sidebar-radio ${isSelected ? 'checked' : ''}`}></span>
+                                <span className="filter-sidebar-label">{range.label}</span>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+
+                      {/* Custom Price Range: [ ₹ Min ] to [ ₹ Max ] [ Go ] */}
+                      <form className="amazon-custom-price-form" onSubmit={handleApplyCustomPrice}>
+                        <div className="custom-price-inputs-row">
+                          <div className="custom-price-field">
+                            <span className="custom-price-currency">₹</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="1"
+                              placeholder="Min"
+                              value={customMinPrice}
+                              onChange={(e) => setCustomMinPrice(e.target.value)}
+                              className="custom-price-input"
+                              aria-label="Minimum price"
+                            />
+                          </div>
+                          <span className="custom-price-separator">to</span>
+                          <div className="custom-price-field">
+                            <span className="custom-price-currency">₹</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="1"
+                              placeholder="Max"
+                              value={customMaxPrice}
+                              onChange={(e) => setCustomMaxPrice(e.target.value)}
+                              className="custom-price-input"
+                              aria-label="Maximum price"
+                            />
+                          </div>
+                          <button type="submit" className="custom-price-go-btn" title="Go">
+                            Go
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+
+                    {/* Sort By Section */}
+                    <div className="filter-sidebar-section">
+                      <h4 className="filter-sidebar-heading">Sort By</h4>
+                      <ul className="filter-sidebar-list">
+                        {SORT_OPTIONS.map((opt) => {
+                          const isSelected = selectedSort === opt.id;
+                          return (
+                            <li key={opt.id}>
+                              <button
+                                type="button"
+                                className={`filter-sidebar-item-btn ${isSelected ? 'selected' : ''}`}
+                                onClick={() => setSelectedSort(opt.id)}
+                              >
+                                <span className={`filter-sidebar-radio ${isSelected ? 'checked' : ''}`}></span>
+                                <span className="filter-sidebar-label">{opt.label}</span>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+
+                    {/* Delivery Perk */}
+                    <div className="filter-sidebar-section">
+                      <h4 className="filter-sidebar-heading">Delivery</h4>
+                      <div className="filter-sidebar-delivery-perk">
+                        <span className="delivery-check-mark">✓</span>
+                        <span className="delivery-perk-text">Eligible for <strong>FREE Delivery</strong></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mobile-filter-footer">
+                    <button 
+                      type="button" 
+                      className="mobile-filter-apply-btn"
+                      onClick={() => setIsMobileFilterOpen(false)}
+                    >
+                      View {filteredProducts.length} Results
+                    </button>
+                  </div>
+                </div>
+              </div>
 
               {/* DESKTOP SEARCH RESULTS TOPBAR (Results Count & Active Filters on Desktop) */}
               {!loading && (
