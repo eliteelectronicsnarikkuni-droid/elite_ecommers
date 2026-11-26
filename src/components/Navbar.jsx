@@ -251,7 +251,7 @@ const Navbar = () => {
               <input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search products..."
+                placeholder="Search products......"
                 value={searchQuery}
                 onChange={handleSearchChange}
                 onFocus={() => setIsSearchFocused(true)}

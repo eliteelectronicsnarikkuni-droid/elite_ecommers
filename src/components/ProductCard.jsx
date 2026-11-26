@@ -43,22 +43,10 @@ const ProductCard = ({ product, layout = 'grid' }) => {
   const hasDiscount = originalPrice && originalPrice > offerPrice;
   const discountPercentage = product.discountPercentage || (hasDiscount ? Math.round(((originalPrice - offerPrice) / originalPrice) * 100) : 0);
 
-  // Remove unnecessary decimal places when the price is a whole number
-  const formatPrice = (val) => {
-    if (val === null || val === undefined || isNaN(val)) return '';
-    const n = Number(val);
-    return n % 1 === 0
-      ? n.toLocaleString('en-IN')
-      : n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
-
-  const priceFormatted = formatPrice(offerPrice);
-  const originalFormatted = originalPrice ? formatPrice(originalPrice) : null;
-
-  // Stock availability indicator using existing stock data
-  const isOutOfStock = product.inStock === false || product.stock === 0 || product.stock_quantity === 0 || product.inventory === 0;
-  const isLowStock = !isOutOfStock && ((product.stock !== undefined && product.stock !== null && product.stock <= 5) || (product.stock_quantity !== undefined && product.stock_quantity !== null && product.stock_quantity <= 5));
-  const stockCount = product.stock ?? product.stock_quantity;
+  const priceFormatted = Math.round(offerPrice).toLocaleString('en-IN');
+  const originalFormatted = originalPrice
+    ? Math.round(originalPrice).toLocaleString('en-IN')
+    : null;
 
   const handleClick = () => {
     try {
@@ -76,9 +64,6 @@ const ProductCard = ({ product, layout = 'grid' }) => {
         aria-label={`View details for ${product.name}`}
       >
         <div className="product-list-image-container">
-          {hasDiscount && (
-            <span className="product-discount-badge list-discount-badge">{discountPercentage}% OFF</span>
-          )}
           {displayImageUrl ? (
             <img 
               src={displayImageUrl} 
@@ -163,27 +148,9 @@ const ProductCard = ({ product, layout = 'grid' }) => {
             )}
           </div>
 
-          <div className="product-list-delivery-row">
-            <div className="product-list-delivery">
-              <Truck size={14} className="list-delivery-icon" />
-              <span className="list-delivery-text">FREE Delivery</span>
-            </div>
-
-            <div className="product-card-stock-row list-stock-inline">
-              {isOutOfStock ? (
-                <span className="stock-badge out-of-stock">
-                  <span className="stock-dot"></span> Out of Stock
-                </span>
-              ) : isLowStock ? (
-                <span className="stock-badge low-stock">
-                  <span className="stock-dot"></span> Only {stockCount} left
-                </span>
-              ) : (
-                <span className="stock-badge in-stock">
-                  <span className="stock-dot"></span> In Stock
-                </span>
-              )}
-            </div>
+          <div className="product-list-delivery">
+            <Truck size={14} className="list-delivery-icon" />
+            <span className="list-delivery-text">FREE Delivery</span>
           </div>
 
           {product.description && (
@@ -211,9 +178,6 @@ const ProductCard = ({ product, layout = 'grid' }) => {
       aria-label={`View details for ${product.name}`}
     >
       <div className="product-image-container">
-        {hasDiscount && (
-          <span className="product-discount-badge">{discountPercentage}% OFF</span>
-        )}
         {displayImageUrl ? (
           <img 
             src={displayImageUrl} 
@@ -229,67 +193,61 @@ const ProductCard = ({ product, layout = 'grid' }) => {
           </div>
         )}
       </div>
-
       <div className="product-info">
-        <h3 className="product-name" title={product.name}>{product.name}</h3>
+        <h3 className="product-name">{product.name}</h3>
 
-        {/* Color Options: Swatches if multiple colors (> 1), or reserved height slot for row alignment */}
-        <div className="product-card-colors-container">
-          {hasMultipleColors ? (
-            <div className="product-card-colors-section product-grid-colors-section">
-              <div className="product-card-swatches-row">
-                {colors.slice(0, 4).map((c, idx) => {
-                  const isSelected = selectedColorIdx === idx;
-                  const firstImg = Array.isArray(c.images) && c.images.length > 0 ? c.images[0] : null;
+        {/* Color Options: ONLY rendered if multiple colors (> 1) are available */}
+        {hasMultipleColors && (
+          <div className="product-card-colors-section product-grid-colors-section">
+            <div className="product-card-swatches-row">
+              {colors.slice(0, 4).map((c, idx) => {
+                const isSelected = selectedColorIdx === idx;
+                const firstImg = Array.isArray(c.images) && c.images.length > 0 ? c.images[0] : null;
 
-                  return (
-                    <button
-                      key={c.id || idx}
-                      type="button"
-                      className={`card-color-swatch-btn ${isSelected ? 'active' : ''}`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setSelectedColorIdx(idx);
-                      }}
-                      title={c.name || `Color ${idx + 1}`}
-                      aria-label={`Select color ${c.name || idx + 1}`}
-                    >
-                      {firstImg ? (
-                        <img 
-                          src={firstImg} 
-                          alt={c.name || 'Color'} 
-                          className="card-swatch-img" 
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'block';
-                          }}
-                        />
-                      ) : null}
-                      <span 
-                        className="card-swatch-dot" 
-                        style={{ 
-                          backgroundColor: c.colorCode || '#2563eb',
-                          display: firstImg ? 'none' : 'block' 
-                        }} 
+                return (
+                  <button
+                    key={c.id || idx}
+                    type="button"
+                    className={`card-color-swatch-btn ${isSelected ? 'active' : ''}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSelectedColorIdx(idx);
+                    }}
+                    title={c.name || `Color ${idx + 1}`}
+                    aria-label={`Select color ${c.name || idx + 1}`}
+                  >
+                    {firstImg ? (
+                      <img 
+                        src={firstImg} 
+                        alt={c.name || 'Color'} 
+                        className="card-swatch-img" 
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'block';
+                        }}
                       />
-                    </button>
-                  );
-                })}
-                {colors.length > 4 && (
-                  <span className="card-colors-more-pill">+{colors.length - 4}</span>
-                )}
-              </div>
-              <span className="card-colors-text-label">
-                {colors.length} colors
-              </span>
+                    ) : null}
+                    <span 
+                      className="card-swatch-dot" 
+                      style={{ 
+                        backgroundColor: c.colorCode || '#2563eb',
+                        display: firstImg ? 'none' : 'block' 
+                      }} 
+                    />
+                  </button>
+                );
+              })}
+              {colors.length > 4 && (
+                <span className="card-colors-more-pill">+{colors.length - 4}</span>
+              )}
             </div>
-          ) : (
-            <div className="card-colors-empty-slot" aria-hidden="true" />
-          )}
-        </div>
+            <span className="card-colors-text-label">
+              {colors.length} colors
+            </span>
+          </div>
+        )}
         
-        {/* Pricing Wrap - Consistent height across cards */}
         <div className="product-pricing-wrap">
           <div className="card-prices-line">
             <span className="product-price">₹{priceFormatted}</span>
@@ -297,22 +255,8 @@ const ProductCard = ({ product, layout = 'grid' }) => {
               <span className="product-original-price">₹{originalFormatted}</span>
             )}
           </div>
-        </div>
-
-        {/* Stock Availability Indicator */}
-        <div className="product-card-stock-row">
-          {isOutOfStock ? (
-            <span className="stock-badge out-of-stock">
-              <span className="stock-dot"></span> Out of Stock
-            </span>
-          ) : isLowStock ? (
-            <span className="stock-badge low-stock">
-              <span className="stock-dot"></span> Only {stockCount} left
-            </span>
-          ) : (
-            <span className="stock-badge in-stock">
-              <span className="stock-dot"></span> In Stock
-            </span>
+          {hasDiscount && (
+            <span className="card-discount-tag">{discountPercentage}% OFF</span>
           )}
         </div>
 

@@ -70,24 +70,12 @@ const Home = () => {
   }, [activeBanners.length]);
 
   // Filter & Sort States
-  const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedPriceRange, setSelectedPriceRange] = useState('all');
   const [selectedSort, setSelectedSort] = useState('featured');
   const [customMinPrice, setCustomMinPrice] = useState('');
   const [customMaxPrice, setCustomMaxPrice] = useState('');
   const [appliedCustomPrice, setAppliedCustomPrice] = useState({ min: '', max: '' });
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
-
-  // Dynamically extract categories from current product list
-  const categoriesList = useMemo(() => {
-    const set = new Set();
-    products.forEach((p) => {
-      if (p.category && !p.isHidden) {
-        set.add(p.category.trim());
-      }
-    });
-    return ['All', ...Array.from(set)];
-  }, [products]);
 
   // Prevent background scrolling when mobile filter drawer is open
   useEffect(() => {
@@ -238,13 +226,6 @@ const Home = () => {
           return false;
         }
 
-        // Category Filter (homepage catalog view)
-        if (!isSearching && selectedCategory !== 'All') {
-          if ((product.category || '').toLowerCase() !== selectedCategory.toLowerCase()) {
-            return false;
-          }
-        }
-
         // 1. Text Search (name, category, description)
         const matchesQuery = !queryClean || (
           (product.name && product.name.toLowerCase().includes(queryClean)) ||
@@ -306,7 +287,7 @@ const Home = () => {
 
         return 0; // Default Featured
       });
-  }, [products, query, selectedPriceRange, selectedSort, isSearching, appliedCustomPrice, selectedCategory]);
+  }, [products, query, selectedPriceRange, selectedSort, isSearching, appliedCustomPrice]);
 
   const activeFiltersCount = (selectedPriceRange !== 'all' ? 1 : 0) + (selectedSort !== 'featured' ? 1 : 0);
 
@@ -391,36 +372,6 @@ const Home = () => {
                   </div>
                 </>
               )}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Horizontally Scrollable Product Categories Bar (Directly below banner) */}
-      {!isSearching && categoriesList.length > 1 && (
-        <section className="home-categories-section" aria-label="Product Categories">
-          <div className="home-categories-container">
-            <div className="banner-category-pills" role="tablist" aria-label="Filter by category">
-              {categoriesList.map((cat) => {
-                const isCatActive = selectedCategory === cat;
-                const count = cat === 'All'
-                  ? products.filter(p => !p.isHidden).length
-                  : products.filter(p => (p.category || '').toLowerCase() === cat.toLowerCase() && !p.isHidden).length;
-
-                return (
-                  <button
-                    key={cat}
-                    type="button"
-                    role="tab"
-                    aria-selected={isCatActive}
-                    className={`category-pill ${isCatActive ? 'active' : ''}`}
-                    onClick={() => setSelectedCategory(cat)}
-                  >
-                    <span className="category-pill-label">{cat}</span>
-                    <span className="category-pill-count">{count}</span>
-                  </button>
-                );
-              })}
             </div>
           </div>
         </section>
@@ -756,67 +707,40 @@ const Home = () => {
           </div>
         ) : (
           /* HOMEPAGE CATALOG (When no active search query) */
-          <>
-            <div className="featured-section-header">
-              <div className="featured-header-content">
-                <div className="featured-eyebrow">
-                  <Sparkles size={14} className="featured-eyebrow-icon" />
-                  <span>Curated Tech Catalog</span>
-                </div>
-                <h2 className="featured-title">
-                  {selectedCategory === 'All' ? 'Featured Products' : selectedCategory}
-                </h2>
-                <p className="featured-subtitle">
-                  Explore top-grade electronics with checked warranty & fast doorstep delivery
-                </p>
-              </div>
-              <span className="featured-count-badge">
-                <strong>{filteredProducts.length}</strong> {filteredProducts.length === 1 ? 'item' : 'items'}
-              </span>
-            </div>
-
-            {loading ? (
-              <div className="products-grid homepage-products-grid">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="skeleton-product-card">
-                    <div className="skeleton-thumb shimmer"></div>
-                    <div className="skeleton-body">
-                      <div className="skeleton-line shimmer skeleton-cat"></div>
-                      <div className="skeleton-line shimmer skeleton-title"></div>
-                      <div className="skeleton-line shimmer skeleton-price"></div>
-                      <div className="skeleton-btn shimmer"></div>
-                    </div>
+          loading ? (
+            <div className="products-grid homepage-products-grid">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="skeleton-product-card">
+                  <div className="skeleton-thumb shimmer"></div>
+                  <div className="skeleton-body">
+                    <div className="skeleton-line shimmer skeleton-cat"></div>
+                    <div className="skeleton-line shimmer skeleton-title"></div>
+                    <div className="skeleton-line shimmer skeleton-price"></div>
+                    <div className="skeleton-btn shimmer"></div>
                   </div>
-                ))}
-              </div>
-            ) : error ? (
-              <div className="no-results" style={{ textAlign: 'center', padding: '4rem' }}>
-                <h3>Failed to load products</h3>
-                <p style={{ color: 'var(--color-text-light)', marginTop: '0.5rem' }}>{error}</p>
-              </div>
-            ) : filteredProducts.length > 0 ? (
-              <div className="products-grid homepage-products-grid">
-                {filteredProducts.map(product => (
-                  <ProductCard key={product.id} product={product} layout="grid" />
-                ))}
-              </div>
-            ) : (
-              <div className="filter-empty-state">
-                <div className="empty-filter-icon-circle">
-                  <Sparkles size={32} />
                 </div>
-                <h3>No products in this category</h3>
-                <p>Try selecting a different category above or view all products.</p>
-                <button
-                  type="button"
-                  className="clear-all-empty-btn"
-                  onClick={() => setSelectedCategory('All')}
-                >
-                  <RotateCcw size={15} /> Show All Products
-                </button>
+              ))}
+            </div>
+          ) : error ? (
+            <div className="no-results" style={{ textAlign: 'center', padding: '4rem' }}>
+              <h3>Failed to load products</h3>
+              <p style={{ color: 'var(--color-text-light)', marginTop: '0.5rem' }}>{error}</p>
+            </div>
+          ) : filteredProducts.length > 0 ? (
+            <div className="products-grid homepage-products-grid">
+              {filteredProducts.map(product => (
+                <ProductCard key={product.id} product={product} layout="grid" />
+              ))}
+            </div>
+          ) : (
+            <div className="filter-empty-state">
+              <div className="empty-filter-icon-circle">
+                <Sparkles size={32} />
               </div>
-            )}
-          </>
+              <h3>No products available</h3>
+              <p>Check back later for new arrivals.</p>
+            </div>
+          )
         )}
       </main>
     </div>
