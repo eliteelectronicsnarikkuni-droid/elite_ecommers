@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useLayoutEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getProducts, getCachedProducts } from '../services/productService';
+import { getBanners, getCachedBanners } from '../services/bannerService';
 import ProductCard from '../components/ProductCard';
 import { 
   ArrowUpDown, 
@@ -8,7 +9,9 @@ import {
   X, 
   RotateCcw, 
   Filter, 
-  Sparkles 
+  Sparkles,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 const PRICE_RANGES = [
@@ -36,6 +39,35 @@ const Home = () => {
   const [products, setProducts] = useState(() => cachedInitial || []);
   const [loading, setLoading] = useState(() => !cachedInitial || cachedInitial.length === 0);
   const [error, setError] = useState(null);
+
+  // Store Banners State
+  const cachedBanners = getCachedBanners();
+  const [banners, setBanners] = useState(() => cachedBanners || []);
+  const [activeBannerIdx, setActiveBannerIdx] = useState(0);
+
+  const activeBanners = useMemo(() => {
+    return (banners || []).filter((b) => b && b.isActive !== false && b.imageUrl);
+  }, [banners]);
+
+  // Load latest banners from Supabase
+  useEffect(() => {
+    let isMounted = true;
+    getBanners().then((res) => {
+      if (isMounted && Array.isArray(res?.banners) && res.banners.length > 0) {
+        setBanners(res.banners);
+      }
+    }).catch(() => {});
+    return () => { isMounted = false; };
+  }, []);
+
+  // Auto-rotate banners every 5 seconds if multiple exist
+  useEffect(() => {
+    if (activeBanners.length <= 1) return;
+    const timer = setInterval(() => {
+      setActiveBannerIdx((prev) => (prev + 1) % activeBanners.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [activeBanners.length]);
 
   // Filter & Sort States
   const [selectedPriceRange, setSelectedPriceRange] = useState('all');
@@ -261,6 +293,90 @@ const Home = () => {
 
   return (
     <div className="home-container">
+      {/* Store Hero Banner (Visible on catalog view when not searching) */}
+      {!isSearching && activeBanners.length > 0 && (
+        <section className="store-banner-section" aria-label="Store Promotions">
+          <div className="banner-container">
+            <div className="banner-carousel-wrap">
+              <div 
+                className="banner-wrapper"
+                onClick={() => {
+                  const currentBanner = activeBanners[activeBannerIdx];
+                  if (currentBanner?.link) {
+                    if (currentBanner.link.startsWith('http')) {
+                      window.open(currentBanner.link, '_blank');
+                    } else {
+                      window.location.href = currentBanner.link;
+                    }
+                  }
+                }}
+              >
+                <img 
+                  src={activeBanners[activeBannerIdx]?.imageUrl} 
+                  alt={activeBanners[activeBannerIdx]?.title || 'Store promotion banner'} 
+                  className="store-banner-img"
+                  loading="eager"
+                />
+                {(activeBanners[activeBannerIdx]?.title || activeBanners[activeBannerIdx]?.subtitle) && (
+                  <div className="banner-caption-overlay">
+                    <span className="banner-caption-tag">Special Offer</span>
+                    {activeBanners[activeBannerIdx]?.title && (
+                      <h2 className="banner-caption-title">{activeBanners[activeBannerIdx].title}</h2>
+                    )}
+                    {activeBanners[activeBannerIdx]?.subtitle && (
+                      <p className="banner-caption-sub">{activeBanners[activeBannerIdx].subtitle}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {activeBanners.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    className="banner-nav-btn banner-prev-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveBannerIdx((prev) => (prev - 1 + activeBanners.length) % activeBanners.length);
+                    }}
+                    aria-label="Previous banner"
+                  >
+                    <ChevronLeft size={22} />
+                  </button>
+
+                  <button
+                    type="button"
+                    className="banner-nav-btn banner-next-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveBannerIdx((prev) => (prev + 1) % activeBanners.length);
+                    }}
+                    aria-label="Next banner"
+                  >
+                    <ChevronRight size={22} />
+                  </button>
+
+                  <div className="banner-dots-indicators">
+                    {activeBanners.map((_, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        className={`banner-dot-btn ${activeBannerIdx === idx ? 'active' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveBannerIdx(idx);
+                        }}
+                        aria-label={`Go to slide ${idx + 1}`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
       <main className="products-section">
         {isSearching ? (
           <div className="search-page-layout">

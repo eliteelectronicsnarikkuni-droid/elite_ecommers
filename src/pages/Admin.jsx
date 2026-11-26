@@ -10,6 +10,11 @@ import {
   toggleProductVisibility,
   updateProductOrder
 } from '../services/productService';
+import {
+  getBanners,
+  saveBanners,
+  uploadBannerImage
+} from '../services/bannerService';
 import { compressImage, formatFileSize } from '../utils/imageCompressor';
 import {
   Plus,
@@ -48,7 +53,8 @@ import {
   ChevronDown,
   Check,
   Loader2,
-  Search
+  Search,
+  ExternalLink
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -71,6 +77,24 @@ const Admin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [authenticating, setAuthenticating] = useState(false);
   const [lockoutSeconds, setLockoutSeconds] = useState(0);
+
+  // View Tab State ('products' | 'banners')
+  const [activeAdminTab, setActiveAdminTab] = useState('products');
+
+  // Banner Management State
+  const [banners, setBanners] = useState([]);
+  const [loadingBanners, setLoadingBanners] = useState(false);
+  const [isBannerFormOpen, setIsBannerFormOpen] = useState(false);
+  const [bannerTitle, setBannerTitle] = useState('');
+  const [bannerSubtitle, setBannerSubtitle] = useState('');
+  const [bannerLink, setBannerLink] = useState('');
+  const [bannerFile, setBannerFile] = useState(null);
+  const [bannerPreviewUrl, setBannerPreviewUrl] = useState('');
+  const [bannerCompressionStats, setBannerCompressionStats] = useState(null);
+  const [compressingBanner, setCompressingBanner] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [bannerError, setBannerError] = useState('');
+  const bannerFileInputRef = useRef(null);
 
   // Dashboard & Products State
   const [products, setProducts] = useState([]);
@@ -181,6 +205,7 @@ const Admin = () => {
   useEffect(() => {
     if (session) {
       loadProducts();
+      loadBanners();
     }
   }, [session]);
 
@@ -258,6 +283,152 @@ const Admin = () => {
       console.error('Error fetching products:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadBanners = async () => {
+    setLoadingBanners(true);
+    try {
+      const res = await getBanners();
+      setBanners(res.banners || []);
+    } catch (err) {
+      console.error('Error fetching banners:', err);
+    } finally {
+      setLoadingBanners(false);
+    }
+  };
+
+  const handleBannerFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setBannerError('');
+    setCompressingBanner(true);
+    try {
+      // Smart WebP HD Compression for Banners (max 1920x960, 85% quality)
+      const result = await compressImage(file, {
+        maxWidth: 1920,
+        maxHeight: 960,
+        quality: 0.85
+      });
+
+      setBannerFile(result.compressedFile);
+      setBannerPreviewUrl(result.previewUrl);
+      setBannerCompressionStats({
+        originalSize: result.originalSize,
+        compressedSize: result.compressedSize,
+        savedPercent: result.savedPercent,
+        savedBytes: result.savedBytes,
+        originalFormatted: formatFileSize(result.originalSize),
+        compressedFormatted: formatFileSize(result.compressedSize)
+      });
+    } catch (err) {
+      console.warn('Image compression fallback:', err);
+      setBannerFile(file);
+      setBannerPreviewUrl(URL.createObjectURL(file));
+      setBannerCompressionStats({
+        originalSize: file.size,
+        compressedSize: file.size,
+        savedPercent: 0,
+        originalFormatted: formatFileSize(file.size),
+        compressedFormatted: formatFileSize(file.size)
+      });
+    } finally {
+      setCompressingBanner(false);
+    }
+  };
+
+  const handleSaveBanner = async (e) => {
+    e.preventDefault();
+    if (!bannerFile && !bannerPreviewUrl) {
+      setBannerError('Please select a banner image to upload.');
+      return;
+    }
+
+    setUploadingBanner(true);
+    setBannerError('');
+    try {
+      let finalImageUrl = bannerPreviewUrl;
+      let finalStats = bannerCompressionStats;
+
+      if (bannerFile) {
+        const uploadRes = await uploadBannerImage(bannerFile);
+        finalImageUrl = uploadRes.url;
+        if (uploadRes.compressionResult) {
+          finalStats = uploadRes.compressionResult;
+        }
+      }
+
+      const newBanner = {
+        id: `banner_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        title: bannerTitle.trim(),
+        subtitle: bannerSubtitle.trim(),
+        imageUrl: finalImageUrl,
+        link: bannerLink.trim(),
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        compressionInfo: finalStats
+      };
+
+      const updatedBanners = [newBanner, ...banners];
+      await saveBanners(updatedBanners);
+      setBanners(updatedBanners);
+
+      // Reset form
+      setBannerTitle('');
+      setBannerSubtitle('');
+      setBannerLink('');
+      setBannerFile(null);
+      setBannerPreviewUrl('');
+      setBannerCompressionStats(null);
+      setIsBannerFormOpen(false);
+
+      setFeedback({
+        type: 'success',
+        message: `Banner published! Compressed to ${finalStats?.compressedFormatted || 'WebP'} (${finalStats?.savedPercent || 0}% saved).`
+      });
+    } catch (err) {
+      console.error('Error saving banner:', err);
+      setBannerError(err.message || 'Failed to save banner. Please try again.');
+    } finally {
+      setUploadingBanner(false);
+    }
+  };
+
+  const handleDeleteBanner = (bannerId) => {
+    setConfirmModal({
+      isOpen: true,
+      type: 'delete',
+      title: 'Delete Banner',
+      message: 'Are you sure you want to permanently delete this promotional banner?',
+      confirmText: 'Delete Banner',
+      confirmVariant: 'danger',
+      onConfirm: async () => {
+        try {
+          const updated = banners.filter((b) => b.id !== bannerId);
+          await saveBanners(updated);
+          setBanners(updated);
+          setFeedback({ type: 'success', message: 'Banner removed successfully.' });
+        } catch (err) {
+          setFeedback({ type: 'error', message: 'Failed to delete banner.' });
+        }
+      }
+    });
+  };
+
+  const handleToggleBannerActive = async (bannerId) => {
+    try {
+      const updated = banners.map((b) => {
+        if (b.id === bannerId) {
+          return { ...b, isActive: b.isActive === false ? true : false };
+        }
+        return b;
+      });
+      await saveBanners(updated);
+      setBanners(updated);
+      setFeedback({ type: 'success', message: 'Banner visibility updated.' });
+    } catch (err) {
+      setFeedback({ type: 'error', message: 'Failed to update banner.' });
     }
   };
 
@@ -1204,25 +1375,78 @@ const Admin = () => {
         </div>
       </div>
 
+      {/* Admin View Switcher: Products vs Store Banners */}
+      <div className="admin-tabs-nav">
+        <button
+          type="button"
+          className={`admin-tab-btn ${activeAdminTab === 'products' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveAdminTab('products');
+            setIsBannerFormOpen(false);
+          }}
+        >
+          <Package size={17} />
+          <span>Products Details</span>
+          <span className="admin-tab-count-badge">{products.length}</span>
+        </button>
+
+        <button
+          type="button"
+          className={`admin-tab-btn ${activeAdminTab === 'banners' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveAdminTab('banners');
+            setIsFormOpen(false);
+          }}
+        >
+          <ImageIcon size={17} />
+          <span>Store Banners</span>
+          <span className="admin-tab-count-badge">{banners.length}</span>
+        </button>
+      </div>
+
       <div className="admin-header">
-        <div className="admin-header-title-wrap">
-          <h1>Product Management</h1>
-          <p>Add and manage your store products stored in Supabase</p>
-        </div>
-        {!isFormOpen && (
-          <button
-            type="button"
-            className="admin-add-product-main-btn"
-            onClick={() => {
-              resetForm();
-              setEditingProductId(null);
-              setIsFormOpen(true);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          >
-            <Plus size={18} />
-            <span>Add Product</span>
-          </button>
+        {activeAdminTab === 'products' ? (
+          <>
+            <div className="admin-header-title-wrap">
+              <h1>Product Management</h1>
+              <p>Add and manage your store products stored in Supabase</p>
+            </div>
+            {!isFormOpen && (
+              <button
+                type="button"
+                className="admin-add-product-main-btn"
+                onClick={() => {
+                  resetForm();
+                  setEditingProductId(null);
+                  setIsFormOpen(true);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              >
+                <Plus size={18} />
+                <span>Add Product</span>
+              </button>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="admin-header-title-wrap">
+              <h1>Store Banner Management</h1>
+              <p>Upload promotional hero banners with smart WebP image compression</p>
+            </div>
+            {!isBannerFormOpen && (
+              <button
+                type="button"
+                className="admin-add-product-main-btn"
+                onClick={() => {
+                  setIsBannerFormOpen(true);
+                  setBannerError('');
+                }}
+              >
+                <Plus size={18} />
+                <span>Add Banner</span>
+              </button>
+            )}
+          </>
         )}
       </div>
 
@@ -1237,7 +1461,280 @@ const Admin = () => {
         </div>
       )}
 
-      {isFormOpen ? (
+      {activeAdminTab === 'banners' ? (
+        <div className="admin-banners-view-container">
+          {/* BANNER UPLOAD FORM */}
+          {isBannerFormOpen && (
+            <div className="admin-card admin-banner-form-card" ref={formRef}>
+              <div className="card-title-header">
+                <div className="card-title">
+                  <ImageIcon size={22} />
+                  <h2>Add Promotional Hero Banner</h2>
+                </div>
+                <button
+                  type="button"
+                  className="banner-close-btn"
+                  onClick={() => setIsBannerFormOpen(false)}
+                  title="Close form"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {bannerError && (
+                <div className="admin-alert error" style={{ margin: '1rem 0' }}>
+                  <AlertCircle size={18} />
+                  <span>{bannerError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleSaveBanner} className="admin-banner-form">
+                <div className="form-group">
+                  <label>
+                    Banner Image <span className="required-star">*</span>
+                    <span className="banner-size-hint">(Recommended: 1920 × 800 or 1600 × 800 px landscape)</span>
+                  </label>
+
+                  <div 
+                    className={`banner-dropzone ${bannerPreviewUrl ? 'has-preview' : ''}`}
+                    onClick={() => bannerFileInputRef.current?.click()}
+                  >
+                    <input
+                      type="file"
+                      ref={bannerFileInputRef}
+                      onChange={handleBannerFileSelect}
+                      accept="image/png,image/jpeg,image/webp,image/jpg"
+                      style={{ display: 'none' }}
+                    />
+
+                    {compressingBanner ? (
+                      <div className="banner-compressing-state">
+                        <Loader2 size={32} className="spin-icon" />
+                        <span className="compressing-text">Compressing banner with WebP HD...</span>
+                      </div>
+                    ) : bannerPreviewUrl ? (
+                      <div className="banner-preview-wrapper">
+                        <img 
+                          src={bannerPreviewUrl} 
+                          alt="Banner preview" 
+                          className="banner-mockup-img" 
+                        />
+                        <div className="banner-change-overlay">
+                          <Upload size={18} />
+                          <span>Click to change banner image</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="banner-dropzone-placeholder">
+                        <div className="dropzone-icon-circle">
+                          <Upload size={28} />
+                        </div>
+                        <span className="dropzone-main-text">Click or drag banner image here</span>
+                        <span className="dropzone-sub-text">PNG, JPG, or WebP. Auto-compressed with client-side WebP</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* SMART COMPRESSION STATS BADGE */}
+                  {bannerCompressionStats && (
+                    <div className="banner-compression-card">
+                      <div className="compression-badge-header">
+                        <Zap size={16} className="zap-icon" />
+                        <strong>Smart Image Compression Result</strong>
+                        <span className="compression-tag">WebP Ready</span>
+                      </div>
+                      <div className="compression-stats-row">
+                        <div className="stat-col">
+                          <span className="stat-label">Original Size</span>
+                          <span className="stat-val original">{bannerCompressionStats.originalFormatted}</span>
+                        </div>
+                        <div className="stat-arrow">→</div>
+                        <div className="stat-col">
+                          <span className="stat-label">Optimized Size</span>
+                          <span className="stat-val compressed">{bannerCompressionStats.compressedFormatted}</span>
+                        </div>
+                        <div className="stat-col highlight">
+                          <span className="stat-label">Space Saved</span>
+                          <span className="stat-val saved">🎉 {bannerCompressionStats.savedPercent}% Smaller!</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label>Banner Title / Headline <span className="optional-tag">(Optional)</span></label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Grand Festive Sale - Up to 40% OFF"
+                    value={bannerTitle}
+                    onChange={(e) => setBannerTitle(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Banner Tagline / Subtitle <span className="optional-tag">(Optional)</span></label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Top audio gear, Bluetooth speakers and workshop tools"
+                    value={bannerSubtitle}
+                    onChange={(e) => setBannerSubtitle(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Click Destination / Link <span className="optional-tag">(Optional)</span></label>
+                  <input
+                    type="text"
+                    placeholder="e.g. /category/Speakers & Audio or a product URL"
+                    value={bannerLink}
+                    onChange={(e) => setBannerLink(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-actions-row">
+                  <button
+                    type="submit"
+                    className="save-product-btn"
+                    disabled={uploadingBanner || compressingBanner || (!bannerFile && !bannerPreviewUrl)}
+                  >
+                    {uploadingBanner ? (
+                      <>
+                        <Loader2 size={18} className="spin-icon" />
+                        <span>Uploading & Publishing Banner...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={18} />
+                        <span>Publish Banner to Store</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="cancel-form-btn"
+                    onClick={() => {
+                      setIsBannerFormOpen(false);
+                      setBannerFile(null);
+                      setBannerPreviewUrl('');
+                      setBannerCompressionStats(null);
+                    }}
+                    disabled={uploadingBanner}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* EXISTING BANNERS LIST */}
+          <div className="admin-card admin-banners-list-card">
+            <div className="card-title-header">
+              <div className="card-title">
+                <ImageIcon size={22} />
+                <h2>Current Store Banners ({banners.length})</h2>
+              </div>
+              {!isBannerFormOpen && (
+                <button
+                  type="button"
+                  className="add-banner-quick-btn"
+                  onClick={() => setIsBannerFormOpen(true)}
+                >
+                  <Plus size={16} />
+                  <span>Add Banner</span>
+                </button>
+              )}
+            </div>
+
+            {loadingBanners ? (
+              <div className="admin-loading" style={{ padding: '3rem', textAlign: 'center' }}>
+                <Loader2 size={32} className="spin-icon" style={{ margin: '0 auto 1rem' }} />
+                <p>Loading banners...</p>
+              </div>
+            ) : banners.length === 0 ? (
+              <div className="admin-banners-empty-state">
+                <div className="empty-banner-icon-circle">
+                  <ImageIcon size={38} />
+                </div>
+                <h3>No Banners Added Yet</h3>
+                <p>Add high-impact promotional banners to promote featured collections or discounts on the homepage.</p>
+                <button
+                  type="button"
+                  className="empty-add-banner-btn"
+                  onClick={() => setIsBannerFormOpen(true)}
+                >
+                  <Plus size={16} /> Upload First Banner
+                </button>
+              </div>
+            ) : (
+              <div className="admin-banners-grid">
+                {banners.map((b, idx) => (
+                  <div key={b.id || idx} className={`admin-banner-item-card ${b.isActive === false ? 'inactive' : ''}`}>
+                    <div className="banner-item-preview-box">
+                      <img src={b.imageUrl} alt={b.title || 'Store Banner'} className="banner-item-thumb" />
+                      <div className="banner-item-status-pill">
+                        {b.isActive !== false ? (
+                          <span className="status-live-tag">● Live on Store</span>
+                        ) : (
+                          <span className="status-hidden-tag">Hidden</span>
+                        )}
+                      </div>
+                      {b.compressionInfo?.savedPercent ? (
+                        <div className="banner-item-compression-tag">
+                          <Zap size={11} /> {b.compressionInfo.savedPercent}% WebP Compressed
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="banner-item-info">
+                      <div className="banner-item-title-row">
+                        <h4 className="banner-item-heading">{b.title || 'Promotional Banner'}</h4>
+                      </div>
+                      {b.subtitle && <p className="banner-item-sub">{b.subtitle}</p>}
+                      {b.link && (
+                        <div className="banner-item-link-wrap">
+                          <ExternalLink size={12} />
+                          <span className="banner-item-link-text">{b.link}</span>
+                        </div>
+                      )}
+
+                      <div className="banner-item-actions-row">
+                        <button
+                          type="button"
+                          className={`banner-action-vis-btn ${b.isActive === false ? 'is-hidden' : 'is-visible'}`}
+                          onClick={() => handleToggleBannerActive(b.id)}
+                          title={b.isActive === false ? 'Show banner on store' : 'Hide banner from store'}
+                        >
+                          {b.isActive === false ? (
+                            <>
+                              <Eye size={14} /> Show on Store
+                            </>
+                          ) : (
+                            <>
+                              <EyeOff size={14} /> Hide Banner
+                            </>
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          className="banner-action-del-btn"
+                          onClick={() => handleDeleteBanner(b.id)}
+                          title="Delete this banner"
+                        >
+                          <Trash2 size={14} /> Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : isFormOpen ? (
         <div className="admin-form-view-container">
           <div className="admin-form-nav-bar">
             <button

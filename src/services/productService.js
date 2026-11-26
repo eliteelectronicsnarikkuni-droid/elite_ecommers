@@ -250,6 +250,14 @@ export const invalidateProductCache = () => {
   } catch {}
 };
 
+const isRealProduct = (p) => {
+  if (!p) return false;
+  if (typeof p.id === 'string' && p.id.startsWith('__')) return false;
+  if (p.category === '__system__') return false;
+  if (typeof p.name === 'string' && p.name.startsWith('__')) return false;
+  return true;
+};
+
 export const getCachedProducts = ({ includeHidden = false } = {}) => {
   let list = null;
   if (memoryCache && Array.isArray(memoryCache.products) && memoryCache.products.length > 0) {
@@ -262,7 +270,8 @@ export const getCachedProducts = ({ includeHidden = false } = {}) => {
     }
   }
   if (!list) return null;
-  const sorted = sortProductsByDisplayOrder(list);
+  const validProducts = list.filter(isRealProduct);
+  const sorted = sortProductsByDisplayOrder(validProducts);
   if (includeHidden) return sorted;
   return sorted.filter((p) => {
     if (p.isHidden === true || p.is_hidden === true) return false;
@@ -274,7 +283,8 @@ export const getCachedProducts = ({ includeHidden = false } = {}) => {
 export const getProducts = async ({ forceRefresh = false, includeHidden = false } = {}) => {
   const filterList = (list) => {
     if (!Array.isArray(list)) return [];
-    const sorted = sortProductsByDisplayOrder(list);
+    const validProducts = list.filter(isRealProduct);
+    const sorted = sortProductsByDisplayOrder(validProducts);
     if (includeHidden) return sorted;
     return sorted.filter((p) => {
       if (p.isHidden === true || p.is_hidden === true) return false;
