@@ -43,15 +43,9 @@ const ProductCard = ({ product, layout = 'grid' }) => {
   const hasDiscount = originalPrice && originalPrice > offerPrice;
   const discountPercentage = product.discountPercentage || (hasDiscount ? Math.round(((originalPrice - offerPrice) / originalPrice) * 100) : 0);
 
-  const priceFormatted = offerPrice.toLocaleString('en-IN', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
+  const priceFormatted = Math.round(offerPrice).toLocaleString('en-IN');
   const originalFormatted = originalPrice
-    ? originalPrice.toLocaleString('en-IN', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      })
+    ? Math.round(originalPrice).toLocaleString('en-IN')
     : null;
 
   const handleClick = () => {

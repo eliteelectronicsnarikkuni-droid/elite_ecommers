@@ -680,7 +680,7 @@ const Admin = () => {
     ? Math.round(((numActual - numOffer) / numActual) * 100)
     : 0;
   const liveSavings = (numActual > 0 && numOffer > 0 && numActual > numOffer)
-    ? (numActual - numOffer).toFixed(2)
+    ? Math.round(numActual - numOffer)
     : 0;
 
   const applyEdit = (product) => {
@@ -2453,15 +2453,9 @@ const Admin = () => {
                     .map((p) => {
                     const globalIndex = products.findIndex((item) => String(item.id) === String(p.id));
                     const isTopProduct = globalIndex === 0;
-                    const priceFormatted = Number(p.price || 0).toLocaleString('en-IN', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    });
+                    const priceFormatted = Math.round(Number(p.price || 0)).toLocaleString('en-IN');
                     const originalFormatted = p.originalPrice
-                      ? Number(p.originalPrice).toLocaleString('en-IN', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                      })
+                      ? Math.round(Number(p.originalPrice)).toLocaleString('en-IN')
                       : null;
                     const formattedDate = p.createdAt
                       ? new Date(p.createdAt).toLocaleDateString('en-IN', {
