@@ -181,11 +181,11 @@ export const saveBanners = async (bannersList) => {
 export const uploadBannerImage = async (file) => {
   if (!file) throw new Error('No image file provided');
 
-  // 1. Perform high-performance client-side WebP compression
+  // 1. Perform high-performance client-side WebP compression preserving natural aspect ratio
   const compressionResult = await compressImage(file, {
-    maxWidth: 1920,
-    maxHeight: 960,
-    quality: 0.85
+    maxWidth: 2560,
+    maxHeight: 1440,
+    quality: 0.88
   });
 
   const fileToUpload = compressionResult.compressedFile || file;

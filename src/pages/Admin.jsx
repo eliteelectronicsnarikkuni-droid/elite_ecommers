@@ -305,11 +305,11 @@ const Admin = () => {
     setBannerError('');
     setCompressingBanner(true);
     try {
-      // Smart WebP HD Compression for Banners (max 1920x960, 85% quality)
+      // Smart WebP HD Compression for Banners preserving natural aspect ratio
       const result = await compressImage(file, {
-        maxWidth: 1920,
-        maxHeight: 960,
-        quality: 0.85
+        maxWidth: 2560,
+        maxHeight: 1440,
+        quality: 0.88
       });
 
       setBannerFile(result.compressedFile);
