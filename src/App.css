@@ -1068,7 +1068,7 @@
 .detail-info-section {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .category-badge {
@@ -1086,9 +1086,13 @@
 }
 
 .detail-title {
-  font-size: clamp(1.75rem, 4.5vw, 2.85rem);
-  margin-bottom: 0.75rem;
-  line-height: 1.2;
+  font-size: clamp(1.15rem, 2.2vw, 1.55rem);
+  font-weight: 600;
+  line-height: 1.35;
+  color: #0f172a;
+  letter-spacing: -0.015em;
+  margin-bottom: 0.85rem;
+  word-break: break-word;
 }
 
 .detail-price {
