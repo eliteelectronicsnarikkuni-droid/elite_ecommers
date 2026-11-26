@@ -2453,9 +2453,16 @@ const Admin = () => {
                     .map((p) => {
                     const globalIndex = products.findIndex((item) => String(item.id) === String(p.id));
                     const isTopProduct = globalIndex === 0;
-                    const priceFormatted = Math.round(Number(p.price || 0)).toLocaleString('en-IN');
+                    const formatPriceVal = (val) => {
+                      if (val === null || val === undefined || isNaN(val)) return '';
+                      const n = Number(val);
+                      return n % 1 === 0
+                        ? n.toLocaleString('en-IN')
+                        : n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    };
+                    const priceFormatted = formatPriceVal(p.price);
                     const originalFormatted = p.originalPrice
-                      ? Math.round(Number(p.originalPrice)).toLocaleString('en-IN')
+                      ? formatPriceVal(p.originalPrice)
                       : null;
                     const formattedDate = p.createdAt
                       ? new Date(p.createdAt).toLocaleDateString('en-IN', {

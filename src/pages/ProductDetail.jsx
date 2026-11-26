@@ -142,11 +142,18 @@ const ProductDetail = () => {
   const discountPercentage = product.discountPercentage || (hasDiscount ? Math.round(((originalPrice - offerPrice) / originalPrice) * 100) : 0);
   const savings = hasDiscount ? (originalPrice - offerPrice) : 0;
 
-  const offerPriceFormatted = Math.round(offerPrice).toLocaleString('en-IN');
-  const originalPriceFormatted = originalPrice
-    ? Math.round(originalPrice).toLocaleString('en-IN')
-    : null;
-  const savingsFormatted = Math.round(savings).toLocaleString('en-IN');
+  // Format price: remove decimals when whole number, retain when has fraction
+  const formatPrice = (val) => {
+    if (val === null || val === undefined || isNaN(val)) return '';
+    const n = Number(val);
+    return n % 1 === 0
+      ? n.toLocaleString('en-IN')
+      : n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const offerPriceFormatted = formatPrice(offerPrice);
+  const originalPriceFormatted = originalPrice ? formatPrice(originalPrice) : null;
+  const savingsFormatted = formatPrice(savings);
 
   const handleBuyNow = () => {
     const whatsappNumber = '9447210273';

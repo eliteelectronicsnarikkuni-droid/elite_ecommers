@@ -155,6 +155,18 @@ const normalizeProduct = (row) => {
     displayOrder = null;
   }
 
+  // Extract stock availability from row
+  let stockQuantity = null;
+  if (row.stock !== undefined && row.stock !== null && !isNaN(Number(row.stock))) {
+    stockQuantity = Number(row.stock);
+  } else if (row.stock_quantity !== undefined && row.stock_quantity !== null && !isNaN(Number(row.stock_quantity))) {
+    stockQuantity = Number(row.stock_quantity);
+  } else if (row.inventory !== undefined && row.inventory !== null && !isNaN(Number(row.inventory))) {
+    stockQuantity = Number(row.inventory);
+  }
+
+  const inStock = row.in_stock !== false && row.inStock !== false && (stockQuantity === null || stockQuantity > 0);
+
   return {
     id: String(row.id),
     name: row.name || '',
@@ -170,6 +182,8 @@ const normalizeProduct = (row) => {
     _rawFeatures: rawFeatures,
     isHidden: Boolean(isHidden),
     displayOrder: displayOrder,
+    inStock: Boolean(inStock),
+    stock: stockQuantity,
     createdAt: row.created_at || row.createdAt || null
   };
 };
