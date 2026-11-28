@@ -10,7 +10,8 @@ const DEFAULT_BANNERS = [
     id: 'default_banner_1',
     title: '',
     subtitle: '',
-    imageUrl: '/banner-hero.jpg',
+    imageUrl: '/banner-portrait.jpg',
+    landscapeUrl: '/banner-landscape.jpg',
     link: '#products-catalog',
     isActive: true,
     createdAt: new Date().toISOString()
@@ -31,14 +32,15 @@ export const getCachedBanners = () => {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Upgrade legacy default unsplash banner if present
+        // Upgrade legacy default banner if present
         const upgraded = parsed.map(b => {
-          if (b.id === 'default_banner_1' && b.imageUrl && b.imageUrl.includes('unsplash.com')) {
+          if (b.id === 'default_banner_1') {
             return {
               ...b,
               title: '',
               subtitle: '',
-              imageUrl: '/banner-hero.jpg',
+              imageUrl: '/banner-portrait.jpg',
+              landscapeUrl: '/banner-landscape.jpg',
               link: '#products-catalog'
             };
           }
@@ -71,11 +73,13 @@ export const getBanners = async () => {
         if (!error && Array.isArray(data) && data.length > 0) {
           const formatted = data.map((b) => {
             let img = b.image_url || b.imageUrl || '';
+            let landscapeImg = b.landscape_url || b.landscapeUrl || '/banner-landscape.jpg';
             let title = b.title || '';
             let subtitle = b.subtitle || '';
             let link = b.link || '#products-catalog';
-            if (b.id === 'default_banner_1' && img.includes('unsplash.com')) {
-              img = '/banner-hero.jpg';
+            if (b.id === 'default_banner_1') {
+              img = '/banner-portrait.jpg';
+              landscapeImg = '/banner-landscape.jpg';
               title = '';
               subtitle = '';
             }
@@ -84,6 +88,7 @@ export const getBanners = async () => {
               title,
               subtitle,
               imageUrl: img,
+              landscapeUrl: landscapeImg,
               link,
               isActive: b.is_active !== undefined ? Boolean(b.is_active) : (b.isActive !== undefined ? Boolean(b.isActive) : true),
               createdAt: b.created_at || new Date().toISOString()
@@ -111,12 +116,13 @@ export const getBanners = async () => {
           let parsed = JSON.parse(prodData.description);
           if (Array.isArray(parsed) && parsed.length > 0) {
             parsed = parsed.map(b => {
-              if (b.id === 'default_banner_1' && b.imageUrl && b.imageUrl.includes('unsplash.com')) {
+              if (b.id === 'default_banner_1') {
                 return {
                   ...b,
                   title: '',
                   subtitle: '',
-                  imageUrl: '/banner-hero.jpg',
+                  imageUrl: '/banner-portrait.jpg',
+                  landscapeUrl: '/banner-landscape.jpg',
                   link: '#products-catalog'
                 };
               }

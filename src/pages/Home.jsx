@@ -292,21 +292,28 @@ const Home = () => {
 
   const activeFiltersCount = (selectedPriceRange !== 'all' ? 1 : 0) + (selectedSort !== 'featured' ? 1 : 0);
 
-  const handleBannerClick = () => {
-    const currentBanner = activeBanners[activeBannerIdx];
-    if (currentBanner?.link && currentBanner.link !== '#' && currentBanner.link !== '#products-catalog') {
-      if (currentBanner.link.startsWith('http')) {
-        window.open(currentBanner.link, '_blank');
-      } else {
-        window.location.href = currentBanner.link;
-      }
-    } else {
-      // Smoothly scroll down to the product catalog
+  const handleGoToAllProducts = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    // Clear search and reset filters so all products are displayed
+    if (query) {
+      setSearchParams({});
+    }
+    setSelectedPriceRange('all');
+    setSelectedSort('featured');
+    setCustomMinPrice('');
+    setCustomMaxPrice('');
+    setAppliedCustomPrice(null);
+
+    // Smoothly scroll down to the product catalog
+    setTimeout(() => {
       const el = document.getElementById('products-catalog') || document.querySelector('.products-section');
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
-    }
+    }, 50);
   };
 
   return (
@@ -318,23 +325,32 @@ const Home = () => {
             <div className="banner-carousel-wrap">
               <div 
                 className="banner-wrapper"
-                onClick={handleBannerClick}
+                onClick={handleGoToAllProducts}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    handleBannerClick();
+                    handleGoToAllProducts(e);
                   }
                 }}
                 aria-label="Shop our products collection"
               >
-                <img 
-                  src={activeBanners[activeBannerIdx]?.imageUrl} 
-                  alt={activeBanners[activeBannerIdx]?.title || 'Store promotion banner'} 
-                  className="store-banner-img"
-                  loading="eager"
-                />
+                <picture className="store-banner-picture">
+                  {/* Laptop and big screen devices: landscape banner */}
+                  <source 
+                    media="(min-width: 769px)" 
+                    srcSet={activeBanners[activeBannerIdx]?.landscapeUrl || '/banner-landscape.jpg'} 
+                  />
+                  {/* Mobile phones: portrait banner */}
+                  <img 
+                    src={activeBanners[activeBannerIdx]?.imageUrl || '/banner-portrait.jpg'} 
+                    alt={activeBanners[activeBannerIdx]?.title || 'Elite Electronics Promotion Banner'} 
+                    className="store-banner-img"
+                    loading="eager"
+                  />
+                </picture>
+
                 {(activeBanners[activeBannerIdx]?.title || activeBanners[activeBannerIdx]?.subtitle) && (
                   <div className="banner-caption-overlay">
                     <span className="banner-caption-tag">Special Offer</span>
@@ -347,10 +363,7 @@ const Home = () => {
                     <button
                       type="button"
                       className="banner-shop-now-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleBannerClick();
-                      }}
+                      onClick={handleGoToAllProducts}
                     >
                       Shop Now <ArrowRight size={16} />
                     </button>
@@ -741,10 +754,7 @@ const Home = () => {
               <button 
                 type="button" 
                 className="shop-all-view-all-btn"
-                onClick={() => {
-                  const el = document.getElementById('products-catalog') || document.querySelector('.products-section');
-                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }}
+                onClick={handleGoToAllProducts}
               >
                 View all
               </button>
