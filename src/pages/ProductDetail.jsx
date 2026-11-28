@@ -107,7 +107,7 @@ const ProductDetail = () => {
   }
 
   const features = Array.isArray(product.features) ? product.features : [];
-  
+
   // Color Options
   const colors = Array.isArray(product.colors) ? product.colors : [];
   const hasColors = colors.length > 0;
@@ -194,10 +194,10 @@ const ProductDetail = () => {
         <div className="detail-image-section">
           <div className="detail-main-image-wrapper">
             {hasImages && currentImageUrl ? (
-              <img 
-                src={currentImageUrl} 
-                alt={`${product.name} - View ${activeImageIndex + 1}`} 
-                className="detail-image" 
+              <img
+                src={currentImageUrl}
+                alt={`${product.name} - View ${activeImageIndex + 1}`}
+                className="detail-image"
                 fetchPriority="high"
                 decoding="async"
               />
@@ -211,17 +211,17 @@ const ProductDetail = () => {
 
             {images.length > 1 && (
               <>
-                <button 
-                  type="button" 
-                  className="gallery-nav-btn prev" 
+                <button
+                  type="button"
+                  className="gallery-nav-btn prev"
                   onClick={handlePrevImage}
                   aria-label="Previous image"
                 >
                   <ChevronLeft size={22} />
                 </button>
-                <button 
-                  type="button" 
-                  className="gallery-nav-btn next" 
+                <button
+                  type="button"
+                  className="gallery-nav-btn next"
                   onClick={handleNextImage}
                   aria-label="Next image"
                 >
@@ -246,11 +246,11 @@ const ProductDetail = () => {
                   onMouseEnter={() => setActiveImageIndex(index)}
                   title={`View image ${index + 1}`}
                 >
-                  <img 
-                    src={imgUrl} 
-                    alt={`${product.name} thumbnail ${index + 1}`} 
-                    loading="lazy" 
-                    decoding="async" 
+                  <img
+                    src={imgUrl}
+                    alt={`${product.name} thumbnail ${index + 1}`}
+                    loading="lazy"
+                    decoding="async"
                   />
                   <span className="thumbnail-num-tag">{index + 1}</span>
                 </button>
@@ -291,9 +291,9 @@ const ProductDetail = () => {
                       {firstImg ? (
                         <img src={firstImg} alt={c.name} className="color-option-thumb" />
                       ) : (
-                        <span 
-                          className="color-option-swatch" 
-                          style={{ backgroundColor: c.colorCode || '#000000' }} 
+                        <span
+                          className="color-option-swatch"
+                          style={{ backgroundColor: c.colorCode || '#000000' }}
                         />
                       )}
                       <span className="color-option-name">{c.name}</span>
@@ -358,7 +358,6 @@ const ProductDetail = () => {
                 <ShieldCheck size={20} />
               </div>
               <span className="flipkart-feature-title">5 Days Checking Warranty</span>
-              <span className="flipkart-feature-sub">Replacement assured</span>
             </div>
           </div>
 
@@ -385,10 +384,10 @@ const ProductDetail = () => {
         <div className="sticky-buy-bar-inner">
           <div className="sticky-product-summary">
             {currentImageUrl ? (
-              <img 
-                src={currentImageUrl} 
-                alt={product.name} 
-                className="sticky-product-thumb" 
+              <img
+                src={currentImageUrl}
+                alt={product.name}
+                className="sticky-product-thumb"
               />
             ) : (
               <div className="sticky-product-thumb-fallback">

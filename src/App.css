@@ -597,7 +597,7 @@
 /* Store Promotional Hero Banner */
 .store-banner-section {
   width: 100%;
-  padding: clamp(1rem, 2.5vw, 1.75rem) clamp(1rem, 3.5vw, 2.5rem) 0;
+  padding: clamp(0.75rem, 2vw, 1.5rem) clamp(0.75rem, 3vw, 2rem) 0;
   display: flex;
   justify-content: center;
 }
@@ -608,19 +608,19 @@
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1rem;
 }
 
 .banner-wrapper {
   position: relative;
   width: 100%;
-  border-radius: clamp(10px, 2vw, 18px);
+  border-radius: clamp(12px, 2vw, 18px);
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 82, 255, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
   cursor: pointer;
-  background-color: #ffffff;
+  background-color: #f8fafc;
   transition: transform 0.25s ease, box-shadow 0.25s ease;
-  border: 1px solid rgba(0, 82, 255, 0.08);
+  border: 1px solid rgba(226, 232, 240, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -635,8 +635,9 @@
   display: block;
   width: 100%;
   height: auto;
-  max-height: 520px;
-  object-fit: contain;
+  max-height: 560px;
+  object-fit: cover;
+  object-position: center;
   transition: transform 0.3s ease;
 }
 
@@ -688,12 +689,23 @@
 
 @media (max-width: 600px) {
   .store-banner-section {
-    padding: 0.65rem 0.75rem 0;
+    padding: 0.4rem 0.5rem 0;
   }
 
   .banner-wrapper {
     border-radius: 12px;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    min-height: 380px;
+  }
+
+  .store-banner-img {
+    aspect-ratio: 472 / 655; /* Matches the exact mobile banner aspect ratio from reference screenshot */
+    width: 100%;
+    height: auto;
+    min-height: 380px;
+    max-height: 580px;
+    object-fit: cover;
+    object-position: center;
   }
 
   .banner-category-pills {
@@ -707,10 +719,64 @@
   }
 }
 
+/* "Shop All Products" Section Header */
+.shop-all-products-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 1.25rem 0 1.25rem 0;
+  padding: 0 0.25rem 0.65rem 0.25rem;
+  border-bottom: 2px solid #f1f5f9;
+}
+
+.shop-all-title {
+  font-size: clamp(1.35rem, 3.5vw, 1.85rem);
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.shop-all-view-all-btn {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.shop-all-view-all-btn:hover {
+  color: var(--color-primary, #0052ff);
+  background-color: #f1f5f9;
+}
+
+@media (max-width: 600px) {
+  .shop-all-products-header {
+    margin: 1rem 0 0.85rem 0;
+    padding: 0 0.15rem 0.45rem 0.15rem;
+  }
+  .shop-all-title {
+    font-size: 1.35rem;
+  }
+  .shop-all-view-all-btn {
+    font-size: 0.85rem;
+    padding: 0.2rem 0.45rem;
+  }
+}
+
 .products-section {
   max-width: 1200px;
-  margin: 1rem auto 4rem;
-  padding: 0 clamp(1rem, 3.5vw, 2rem);
+  margin: 0.5rem auto 4rem;
+  padding: 0 clamp(0.75rem, 3.5vw, 2rem);
 }
 
 .section-header {
@@ -6570,7 +6636,39 @@
   line-height: 1.4;
 }
 
+.banner-shop-now-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #C81E27;
+  color: #ffffff;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.65rem 1.4rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  margin-top: 0.85rem;
+  box-shadow: 0 4px 14px rgba(200, 30, 39, 0.35);
+  transition: all 0.2s ease;
+  pointer-events: auto;
+}
+
+.banner-shop-now-btn:hover {
+  background: #A8141C;
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 6px 18px rgba(200, 30, 39, 0.45);
+}
+
 @media (max-width: 600px) {
+  .banner-shop-now-btn {
+    font-size: 0.85rem;
+    padding: 0.5rem 1.15rem;
+    border-radius: 6px;
+    margin-top: 0.5rem;
+  }
+
   .banner-nav-btn {
     width: 32px;
     height: 32px;

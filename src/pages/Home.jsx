@@ -11,7 +11,8 @@ import {
   Filter, 
   Sparkles,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ArrowRight
 } from 'lucide-react';
 
 const PRICE_RANGES = [
@@ -291,6 +292,23 @@ const Home = () => {
 
   const activeFiltersCount = (selectedPriceRange !== 'all' ? 1 : 0) + (selectedSort !== 'featured' ? 1 : 0);
 
+  const handleBannerClick = () => {
+    const currentBanner = activeBanners[activeBannerIdx];
+    if (currentBanner?.link && currentBanner.link !== '#' && currentBanner.link !== '#products-catalog') {
+      if (currentBanner.link.startsWith('http')) {
+        window.open(currentBanner.link, '_blank');
+      } else {
+        window.location.href = currentBanner.link;
+      }
+    } else {
+      // Smoothly scroll down to the product catalog
+      const el = document.getElementById('products-catalog') || document.querySelector('.products-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
+
   return (
     <div className="home-container">
       {/* Store Hero Banner (Visible on catalog view when not searching) */}
@@ -300,16 +318,16 @@ const Home = () => {
             <div className="banner-carousel-wrap">
               <div 
                 className="banner-wrapper"
-                onClick={() => {
-                  const currentBanner = activeBanners[activeBannerIdx];
-                  if (currentBanner?.link) {
-                    if (currentBanner.link.startsWith('http')) {
-                      window.open(currentBanner.link, '_blank');
-                    } else {
-                      window.location.href = currentBanner.link;
-                    }
+                onClick={handleBannerClick}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleBannerClick();
                   }
                 }}
+                aria-label="Shop our products collection"
               >
                 <img 
                   src={activeBanners[activeBannerIdx]?.imageUrl} 
@@ -326,6 +344,16 @@ const Home = () => {
                     {activeBanners[activeBannerIdx]?.subtitle && (
                       <p className="banner-caption-sub">{activeBanners[activeBannerIdx].subtitle}</p>
                     )}
+                    <button
+                      type="button"
+                      className="banner-shop-now-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleBannerClick();
+                      }}
+                    >
+                      Shop Now <ArrowRight size={16} />
+                    </button>
                   </div>
                 )}
               </div>
@@ -377,7 +405,7 @@ const Home = () => {
         </section>
       )}
 
-      <main className="products-section">
+      <main id="products-catalog" className="products-section">
         {isSearching ? (
           <div className="search-page-layout">
             {/* DESKTOP AMAZON FILTER SIDEBAR (Visible only on desktop > 1024px) */}
@@ -707,40 +735,56 @@ const Home = () => {
           </div>
         ) : (
           /* HOMEPAGE CATALOG (When no active search query) */
-          loading ? (
-            <div className="products-grid homepage-products-grid">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="skeleton-product-card">
-                  <div className="skeleton-thumb shimmer"></div>
-                  <div className="skeleton-body">
-                    <div className="skeleton-line shimmer skeleton-cat"></div>
-                    <div className="skeleton-line shimmer skeleton-title"></div>
-                    <div className="skeleton-line shimmer skeleton-price"></div>
-                    <div className="skeleton-btn shimmer"></div>
+          <>
+            <div className="shop-all-products-header">
+              <h2 className="shop-all-title">Shop All Products</h2>
+              <button 
+                type="button" 
+                className="shop-all-view-all-btn"
+                onClick={() => {
+                  const el = document.getElementById('products-catalog') || document.querySelector('.products-section');
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+              >
+                View all
+              </button>
+            </div>
+
+            {loading ? (
+              <div className="products-grid homepage-products-grid">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="skeleton-product-card">
+                    <div className="skeleton-thumb shimmer"></div>
+                    <div className="skeleton-body">
+                      <div className="skeleton-line shimmer skeleton-cat"></div>
+                      <div className="skeleton-line shimmer skeleton-title"></div>
+                      <div className="skeleton-line shimmer skeleton-price"></div>
+                      <div className="skeleton-btn shimmer"></div>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : error ? (
-            <div className="no-results" style={{ textAlign: 'center', padding: '4rem' }}>
-              <h3>Failed to load products</h3>
-              <p style={{ color: 'var(--color-text-light)', marginTop: '0.5rem' }}>{error}</p>
-            </div>
-          ) : filteredProducts.length > 0 ? (
-            <div className="products-grid homepage-products-grid">
-              {filteredProducts.map(product => (
-                <ProductCard key={product.id} product={product} layout="grid" />
-              ))}
-            </div>
-          ) : (
-            <div className="filter-empty-state">
-              <div className="empty-filter-icon-circle">
-                <Sparkles size={32} />
+                ))}
               </div>
-              <h3>No products available</h3>
-              <p>Check back later for new arrivals.</p>
-            </div>
-          )
+            ) : error ? (
+              <div className="no-results" style={{ textAlign: 'center', padding: '4rem' }}>
+                <h3>Failed to load products</h3>
+                <p style={{ color: 'var(--color-text-light)', marginTop: '0.5rem' }}>{error}</p>
+              </div>
+            ) : filteredProducts.length > 0 ? (
+              <div className="products-grid homepage-products-grid">
+                {filteredProducts.map(product => (
+                  <ProductCard key={product.id} product={product} layout="grid" />
+                ))}
+              </div>
+            ) : (
+              <div className="filter-empty-state">
+                <div className="empty-filter-icon-circle">
+                  <Sparkles size={32} />
+                </div>
+                <h3>No products available</h3>
+                <p>Check back later for new arrivals.</p>
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>

@@ -8,10 +8,10 @@ const SYSTEM_BANNERS_RECORD_ID = '__site_banners__';
 const DEFAULT_BANNERS = [
   {
     id: 'default_banner_1',
-    title: 'Welcome to Elite Electronics',
-    subtitle: 'Best Deals on Audio, LED Lights & Electronic Components',
-    imageUrl: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&w=1600&q=80',
-    link: '',
+    title: '',
+    subtitle: '',
+    imageUrl: '/banner-hero.jpg',
+    link: '#products-catalog',
     isActive: true,
     createdAt: new Date().toISOString()
   }
@@ -31,8 +31,21 @@ export const getCachedBanners = () => {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        memoryBannerCache = parsed;
-        return parsed;
+        // Upgrade legacy default unsplash banner if present
+        const upgraded = parsed.map(b => {
+          if (b.id === 'default_banner_1' && b.imageUrl && b.imageUrl.includes('unsplash.com')) {
+            return {
+              ...b,
+              title: '',
+              subtitle: '',
+              imageUrl: '/banner-hero.jpg',
+              link: '#products-catalog'
+            };
+          }
+          return b;
+        });
+        memoryBannerCache = upgraded;
+        return upgraded;
       }
     }
   } catch (e) {
@@ -56,15 +69,26 @@ export const getBanners = async () => {
           .order('created_at', { ascending: false });
 
         if (!error && Array.isArray(data) && data.length > 0) {
-          const formatted = data.map((b) => ({
-            id: b.id || `banner_${Date.now()}`,
-            title: b.title || '',
-            subtitle: b.subtitle || '',
-            imageUrl: b.image_url || b.imageUrl || '',
-            link: b.link || '',
-            isActive: b.is_active !== undefined ? Boolean(b.is_active) : (b.isActive !== undefined ? Boolean(b.isActive) : true),
-            createdAt: b.created_at || new Date().toISOString()
-          }));
+          const formatted = data.map((b) => {
+            let img = b.image_url || b.imageUrl || '';
+            let title = b.title || '';
+            let subtitle = b.subtitle || '';
+            let link = b.link || '#products-catalog';
+            if (b.id === 'default_banner_1' && img.includes('unsplash.com')) {
+              img = '/banner-hero.jpg';
+              title = '';
+              subtitle = '';
+            }
+            return {
+              id: b.id || `banner_${Date.now()}`,
+              title,
+              subtitle,
+              imageUrl: img,
+              link,
+              isActive: b.is_active !== undefined ? Boolean(b.is_active) : (b.isActive !== undefined ? Boolean(b.isActive) : true),
+              createdAt: b.created_at || new Date().toISOString()
+            };
+          });
           memoryBannerCache = formatted;
           try {
             localStorage.setItem(BANNER_STORAGE_KEY, JSON.stringify(formatted));
@@ -84,8 +108,20 @@ export const getBanners = async () => {
 
       if (!prodError && prodData && prodData.description) {
         try {
-          const parsed = JSON.parse(prodData.description);
+          let parsed = JSON.parse(prodData.description);
           if (Array.isArray(parsed) && parsed.length > 0) {
+            parsed = parsed.map(b => {
+              if (b.id === 'default_banner_1' && b.imageUrl && b.imageUrl.includes('unsplash.com')) {
+                return {
+                  ...b,
+                  title: '',
+                  subtitle: '',
+                  imageUrl: '/banner-hero.jpg',
+                  link: '#products-catalog'
+                };
+              }
+              return b;
+            });
             memoryBannerCache = parsed;
             try {
               localStorage.setItem(BANNER_STORAGE_KEY, JSON.stringify(parsed));
